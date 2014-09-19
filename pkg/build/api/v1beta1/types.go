@@ -101,3 +101,14 @@ type BuildConfigList struct {
 	api.JSONBase `json:",inline" yaml:",inline"`
 	Items        []BuildConfig `json:"items,omitempty" yaml:"items,omitempty"`
 }
+
+
+type BuildLog struct {
+	api.JSONBase `json:",inline" yaml:",inline"`
+	LogItems     []LogItem `json:"logItems,omitempty" yaml:"logItems,omitempty"`
+}
+
+type LogItem struct {
+	Timestamp   string `json:"timestamp,omitempty" yaml:"timestamp,omitempty"`
+	Log         string `json:"log,omitempty" yaml:"log,omitempty"`
+}

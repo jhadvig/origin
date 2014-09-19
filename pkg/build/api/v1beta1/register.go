@@ -10,5 +10,6 @@ func init() {
 		BuildList{},
 		BuildConfig{},
 		BuildConfigList{},
+		BuildLog{},
 	)
 }
