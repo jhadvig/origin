@@ -1,0 +1,11 @@
+{
+    "id": "build100",
+    "desiredInput":
+    {
+        "type": "docker",
+        "sourceURI": "git://github.com/jhadvig/ruby-hello-world.git",
+        "imageTag": "jhadvig/origin-ruby-sample",
+    },
+ 
+    "secret": "secret101"
+}

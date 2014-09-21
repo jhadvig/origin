@@ -56,27 +56,20 @@ func (storage *Storage) Get(id string) (interface{}, error) {
 	// Build will take place only in one container 
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 
-	// podInfoGetter := client.HTTPPodInfoGetter{
-	// 	Client: http.DefaultClient,
-	// 	Port:   10250,
-	// }
-	// // get hostname:hostport ?
-	// _, err = podInfoGetter.GetPodInfo(buildHost, buildPodID)
-
-	client := &http.DefaultClient
-
 	req, err := http.NewRequest(
 		"GET", 
 		fmt.Sprintf("http://127.0.0.1:8080/proxy/minion/%s/containerLogs/%s/%s", buildHost, buildPodID, buildContainerName), 
 		nil,
 	)
-
-	response, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	buildLog := &api.BuildLog{}
+	client := &http.DefaultClient
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
 	logLines, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
@@ -84,14 +77,14 @@ func (storage *Storage) Get(id string) (interface{}, error) {
 		return nil,	err
 	}
 
+	buildLog := &api.BuildLog{}
+	buildLog.CreationTimestamp = util.Now()
 	for _, line := range strings.Split(string(logLines), "\n") {
 		if len(line) > 0 {
 			matches := logRegexp.FindStringSubmatch(line)
 			buildLog.LogItems = append(buildLog.LogItems, api.LogItem{Timestamp:matches[1], Log:matches[2]})
 		}
 	}
-
-	buildLog.CreationTimestamp = util.Now()
 
 	test, _ := json.Marshal(buildLog)
 	err = ioutil.WriteFile("/tmp/buildLog", test, 0644)
@@ -107,7 +100,7 @@ func (storage *Storage) New() interface{} {
 }
 
 func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
-	return fmt.Errorf("BuildLog can only be retrieved"), nil	
+	return nil, fmt.Errorf("BuildLog can only be retrieved")
 }
 
 func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
@@ -117,7 +110,7 @@ func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
 }
 
 func (storage *Storage) Extract(body []byte) (interface{}, error) {
-	return nil,	fmt.Errorf("BuildLog can only be retrieved")
+	return nil, fmt.Errorf("BuildLog can only be retrieved")
 }
 
 func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {

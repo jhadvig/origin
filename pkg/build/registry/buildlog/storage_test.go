@@ -9,7 +9,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/api/v1beta1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
+	// "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	// "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 )
 
@@ -45,7 +45,7 @@ func TestGetBuildLog(t *testing.T) {
 
 	buildId := "test-build-id"
 
-	etcd.NewRegistry()
+	// etcd.NewRegistry()
 
 	mockBuildRegistry := test.BuildRegistry{Build: expectedBuild}
 	mockPodRegistry := test.PodRegistry{Build: expectedBuild}
@@ -72,14 +72,3 @@ func TestGetBuildLog(t *testing.T) {
 	}
 }
 
-// func TestGetBuildError(t *testing.T) {
-// 	mockRegistry := test.BuildRegistry{Err: fmt.Errorf("get error")}
-// 	storage := Storage{registry: &mockRegistry}
-// 	buildObj, err := storage.Get("foo")
-// 	if err != mockRegistry.Err {
-// 		t.Errorf("Expected %#v, Got %#v", mockRegistry.Err, err)
-// 	}
-// 	if buildObj != nil {
-// 		t.Errorf("Unexpected non-nil build: %#v", buildObj)
-// 	}
-// }
