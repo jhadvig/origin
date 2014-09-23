@@ -2,11 +2,11 @@ package buildlog
 
 import (
 	"fmt"
-	"net/http"
-	"regexp"
-	"strings"
+	// "net/http"
+	// "regexp"
+	// "strings"
 	"io/ioutil"
-	"encoding/json"
+	// "encoding/json"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	// "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -17,8 +17,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	// "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/build/api"
+	// "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	// "github.com/openshift/origin/pkg/build/api"
 	// "github.com/openshift/origin/pkg/build/api/validation"
 )
 
@@ -36,19 +36,17 @@ func NewStorage(b build.Registry, p pod.Registry) apiserver.RESTStorage {
 	}
 }
 
-// var logRegexp = regexp.MustCompile(`.*\[([A-Z][a-z]{2}\s+[0-3]{0,1}[0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9].[0-9]{0,}Z})\]\s+(.*)`)
-var logRegexp = regexp.MustCompile(`.*([0-9]{4}-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9].[0-9]{0,}Z)\s+(.*)`)
-
-func (storage *Storage) Get(id string) (interface{}, error) {
+// Implement Redirector.
+func (storage *Storage) ResourceLocation(id string) (string, error) {
 
 	build, err := storage.BuildRegistry.GetBuild(id)
 	if err != nil {
-		return nil,	fmt.Errorf("No such build")
+		return "",	fmt.Errorf("No such build")
 	}
 
 	pod, err := storage.PodRegistry.GetPod(build.PodID)
 	if err != nil {
-		return nil,	fmt.Errorf("No such pod")
+		return "",	fmt.Errorf("No such pod")
 	}
 
 	buildPodID := build.PodID
@@ -56,43 +54,28 @@ func (storage *Storage) Get(id string) (interface{}, error) {
 	// Build will take place only in one container 
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 
-	req, err := http.NewRequest(
-		"GET", 
-		fmt.Sprintf("http://127.0.0.1:8080/proxy/minion/%s/containerLogs/%s/%s", buildHost, buildPodID, buildContainerName), 
-		nil,
-	)
+
+	location := fmt.Sprintf("http://127.0.0.1:8080/proxy/minion/%s/containerLogs/%s/%s", buildHost, buildPodID, buildContainerName)
+	err = ioutil.WriteFile("/tmp/redirector",[]byte(location), 0644)
 	if err != nil {
-		return nil, err
+		return "",	err
 	}
+	return location, nil
+}
 
-	client := &http.DefaultClient
-	response, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+func (storage *Storage) Get(id string) (interface{}, error) {
 
-	logLines, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
-	if err != nil {
-		return nil,	err
-	}
+	// redirector := storage.(apiserver.Redirector)
+	// location, err := redirector.ResourceLocation(id)
 
-	buildLog := &api.BuildLog{}
-	buildLog.CreationTimestamp = util.Now()
-	for _, line := range strings.Split(string(logLines), "\n") {
-		if len(line) > 0 {
-			matches := logRegexp.FindStringSubmatch(line)
-			buildLog.LogItems = append(buildLog.LogItems, api.LogItem{Timestamp:matches[1], Log:matches[2]})
-		}
-	}
+	// // redirector, ok := storage.(Redirector)
 
-	test, _ := json.Marshal(buildLog)
-	err = ioutil.WriteFile("/tmp/buildLog", test, 0644)
-	if err != nil {
-		return &buildLog, nil
-	}
+	redirector := apiserver.Redirector(storage)
 
-	return buildLog, nil
+	logLocation, _ := redirector.ResourceLocation(id)
+
+	return logLocation, nil
+	// return fmt.Errorf("BuildLog can only be retrieved"), nil
 }
 
 func (storage *Storage) New() interface{} {
@@ -100,7 +83,7 @@ func (storage *Storage) New() interface{} {
 }
 
 func (storage *Storage) List(selector labels.Selector) (interface{}, error) {
-	return nil, fmt.Errorf("BuildLog can only be retrieved")
+	return fmt.Errorf("BuildLog can only be retrieved"), nil	
 }
 
 func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
@@ -110,7 +93,7 @@ func (storage *Storage) Delete(id string) (<-chan interface{}, error) {
 }
 
 func (storage *Storage) Extract(body []byte) (interface{}, error) {
-	return nil, fmt.Errorf("BuildLog can only be retrieved")
+	return fmt.Errorf("BuildLog can only be retrieved"), nil
 }
 
 func (storage *Storage) Create(obj interface{}) (<-chan interface{}, error) {
