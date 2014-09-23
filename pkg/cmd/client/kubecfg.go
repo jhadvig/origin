@@ -18,6 +18,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -28,7 +29,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-	"bufio"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -282,7 +282,7 @@ func (c *KubeConfig) Run() {
 		"deploymentConfigs":       {"DeploymentConfig", client.RESTClient, latest.Codec},
 	}
 
-	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, masterServer) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
+	matchFound := c.executeConfigRequest(method, clients) || c.executeTemplateRequest(method, client) || c.executeBuildLogRequest(method, client) || c.executeControllerRequest(method, kubeClient) || c.executeAPIRequest(method, clients)
 	if matchFound == false {
 		glog.Fatalf("Unknown command %s", method)
 	}
@@ -479,23 +479,24 @@ func (c *KubeConfig) executeControllerRequest(method string, client *kubeclient.
 }
 
 // executeBuildLogRequest retrieves the logs from builder container
-func (c *KubeConfig) executeBuildLogRequest(method, masterServer string) bool {
+func (c *KubeConfig) executeBuildLogRequest(method string, client *osclient.Client) bool {
 	if method != "buildLogs" {
 		return false
 	}
 	if len(c.ID) == 0 {
-		glog.Fatal("Need build ID")
+		glog.Fatal("Build ID required")
 	}
-	path := fmt.Sprintf("%s/osapi/v1beta1/redirect/buildLogs/%s",masterServer, c.ID)
-	resp, _ := http.Get(path)
+	buildIdPath := fmt.Sprintf("/%s", c.ID)
+	request := client.Verb("GET").Path("/redirect").Path("/buildLogs").Path(buildIdPath)
 
-	defer resp.Body.Close()
-
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+	reader, err := request.Stream()
+	if err != nil {
+		glog.Fatalf("Error: %v", err)
 	}
-
+	_, err = io.Copy(os.Stdout, reader)
+	if err != nil {
+		glog.Fatalf("Error: %v", err)
+	}
 	return true
 }
 
