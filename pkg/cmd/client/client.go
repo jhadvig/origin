@@ -49,6 +49,7 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.CertFile, "client_certificate", "", "Path to a client certificate for TLS.")
 	flag.StringVar(&cfg.KeyFile, "client_key", "", "Path to a client key file for TLS.")
 	flag.StringVar(&cfg.ImageName, "image", "", "Image used when updating a replicationController.  Will apply to the first container in the pod template.")
+	flag.StringVar(&cfg.ID, "id", "", "Specifies ID of demanded entity")
 
 	return cmd
 }

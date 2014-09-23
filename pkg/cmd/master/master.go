@@ -19,6 +19,7 @@ import (
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 	etcdconfig "github.com/coreos/etcd/config"
@@ -36,6 +37,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/strategy"
 	"github.com/openshift/origin/pkg/build/webhook"
@@ -219,6 +221,7 @@ func (c *config) runApiserver() {
 	storage := map[string]apiserver.RESTStorage{
 		"builds":                  buildregistry.NewREST(buildRegistry),
 		"buildConfigs":            buildconfigregistry.NewREST(buildRegistry),
+		"buildLogs":               buildlogregistry.NewREST(buildRegistry, kubeetcd.NewRegistry(etcdHelper)),
 		"images":                  image.NewREST(imageRegistry),
 		"imageRepositories":       imagerepository.NewREST(imageRegistry),
 		"imageRepositoryMappings": imagerepositorymapping.NewREST(imageRegistry, imageRegistry),
