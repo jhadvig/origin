@@ -45,5 +45,6 @@ func NewCommandKubecfg(name string) *cobra.Command {
 	flag.StringVar(&cfg.WWW, "www", "", "If -proxy is true, use this directory to serve static files")
 	flag.StringVar(&cfg.TemplateFile, "template_file", "", "If present, load this file as a golang template and use it for output printing")
 	flag.StringVar(&cfg.TemplateStr, "template", "", "If present, parse this string as a golang template and use it for output printing")
+	flag.StringVar(&cfg.ID, "id", "", "Specifies ID of demanded entity")
 	return cmd
 }
