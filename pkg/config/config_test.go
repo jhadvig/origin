@@ -30,9 +30,12 @@ func TestApplyInvalidConfig(t *testing.T) {
 		`{ "items": [ { "kind": "InvalidClientResource", "apiVersion": "v1beta1" } ] }`,
 	}
 	for _, invalidConfig := range invalidConfigs {
-		errs := Apply([]byte(invalidConfig), clients)
-		if len(errs) == 0 {
-			t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig)
+
+		applyResult, _ := Apply([]byte(invalidConfig), clients)
+		for _, result := range applyResult {
+			if len(result.Errors) != 0 {
+				t.Errorf("Expected error while applying invalid Config '%v'", invalidConfig)
+			}
 		}
 	}
 }
@@ -63,11 +66,11 @@ func TestApplySendsData(t *testing.T) {
 	clients := clientapi.ClientMappings{
 		"FakeMapping": {"FakeResource", fakeClient, fakeCodec},
 	}
-	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1" } ] }`
+	config := `{ "apiVersion": "v1beta1", "items": [ { "kind": "FakeResource", "apiVersion": "v1beta1", "id": "FakeID" } ] }`
 
-	errs := Apply([]byte(config), clients)
-	if len(errs) != 0 {
-		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, errs)
+	_, err := Apply([]byte(config), clients)
+	if err != nil {
+		t.Errorf("Unexpected error while applying valid Config '%v': %v", config, err)
 	}
 
 	<-received
