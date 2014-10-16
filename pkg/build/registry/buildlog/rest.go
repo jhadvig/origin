@@ -43,10 +43,14 @@ func (r *REST) ResourceLocation(ctx kubeapi.Context, id string) (string, error) 
 	}
 	buildPodID := build.PodID
 	buildHost := pod.CurrentState.Host
+	buildStream := ""
+	if build.Status == "running" {
+		buildStream = "?follow=1"
+	}
 	// Build will take place only in one container
 	buildContainerName := pod.DesiredState.Manifest.Containers[0].Name
 	location := &url.URL{
-		Path: r.proxyPrefix + "/" + buildHost + "/containerLogs/" + buildPodID + "/" + buildContainerName,
+		Path: r.proxyPrefix + "/" + buildHost + "/containerLogs/" + buildPodID + "/" + buildContainerName + buildStream,
 	}
 	if err != nil {
 		return "", err

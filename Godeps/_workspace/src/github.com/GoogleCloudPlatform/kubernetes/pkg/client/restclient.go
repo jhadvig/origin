@@ -72,6 +72,7 @@ func NewRESTClient(baseURL *url.URL, c runtime.Codec) *RESTClient {
 		Sync: false,
 		// Poll frequently when asynchronous requests are provided
 		PollPeriod: time.Second * 2,
+		// Timeout: time.Second * 50,
 	}
 }
 

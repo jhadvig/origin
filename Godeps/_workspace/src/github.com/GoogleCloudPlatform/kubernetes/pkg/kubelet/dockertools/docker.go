@@ -252,14 +252,14 @@ func GetRecentDockerContainersWithNameAndUUID(client DockerInterface, podFullNam
 // Log tailing is possible when number of tailed lines are set and only if 'follow' is false
 func GetKubeletDockerContainerLogs(client DockerInterface, containerID, tail string, follow bool, stdout, stderr io.Writer) (err error) {
 	opts := docker.LogsOptions{
-		Container:    containerID,
+		Container:    "77f33384fbd4", //containerID,
 		Stdout:       true,
 		Stderr:       true,
 		OutputStream: stdout,
 		ErrorStream:  stderr,
 		Timestamps:   true,
 		RawTerminal:  true,
-		Follow:       follow,
+		Follow:       true,
 	}
 
 	if !follow {

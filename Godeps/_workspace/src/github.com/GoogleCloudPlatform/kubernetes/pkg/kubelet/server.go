@@ -53,8 +53,8 @@ func ListenAndServeKubeletServer(host HostInterface, updates chan<- interface{},
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address, strconv.FormatUint(uint64(port), 10)),
 		Handler:        &handler,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		ReadTimeout:    5 * time.Minute,
+		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 	s.ListenAndServe()
@@ -180,9 +180,11 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 	podFullName := GetPodFullName(&Pod{Name: podID, Namespace: "etcd"})
 
 	fw := FlushWriter{writer: w}
-	if flusher, ok := w.(http.Flusher); ok {
+	if flusher, ok := fw.writer.(http.Flusher); ok {
 		fw.flusher = flusher
 	}
+	// HANDLE !ok
+
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
 	err = s.host.GetKubeletContainerLogs(podFullName, containerName, tail, follow, &fw, &fw)

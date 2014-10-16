@@ -161,6 +161,14 @@ func (rl *respLogger) Write(b []byte) (int, error) {
 	return rl.w.Write(b)
 }
 
+// Write implements http.ResponseWriter.
+func (rl *respLogger) Flush() {
+	if flusher, ok := rl.w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	// HANDLE !ok
+}
+
 // WriteHeader implements http.ResponseWriter.
 func (rl *respLogger) WriteHeader(status int) {
 	rl.status = status

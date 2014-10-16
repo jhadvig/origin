@@ -25,6 +25,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.google.com/p/go.net/html"
 	"code.google.com/p/go.net/html/atom"
@@ -71,6 +72,7 @@ func handleProxyMinion(w http.ResponseWriter, req *http.Request) {
 
 	proxy := httputil.NewSingleHostReverseProxy(minionURL)
 	proxy.Transport = &minionTransport{}
+	proxy.FlushInterval = 1 * time.Millisecond
 	proxy.ServeHTTP(w, newReq)
 }
 
