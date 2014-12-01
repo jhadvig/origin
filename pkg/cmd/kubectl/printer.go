@@ -9,15 +9,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/build/webhook"
 )
 
 var (
 	buildColumns            = []string{"NAME", "TYPE", "STATUS", "POD"}
-	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
+	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE", "WEBHOOK URL"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageRepositoryColumns  = []string{"NAME", "DOCKER REPO", "TAGS"}
 	projectColumns          = []string{"NAME", "NAMESPACE", "DISPLAY NAME", "DESCRIPTION"}
@@ -30,8 +32,10 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p := kctl.NewHumanReadablePrinter(noHeaders)
 	p.Handler(buildColumns, printBuild)
 	p.Handler(buildColumns, printBuildList)
+
 	p.Handler(buildConfigColumns, printBuildConfig)
 	p.Handler(buildConfigColumns, printBuildConfigList)
+
 	p.Handler(imageColumns, printImage)
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageRepositoryColumns, printImageRepository)
@@ -62,7 +66,7 @@ func printBuildList(buildList *buildapi.BuildList, w io.Writer) error {
 }
 
 func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI, webhook.GetWebhookUrl(bc))
 	return err
 }
 
