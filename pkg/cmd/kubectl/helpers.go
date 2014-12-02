@@ -2,8 +2,10 @@ package kubectl
 
 import (
 	"bytes"
+	"fmt"
 	"text/tabwriter"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
@@ -32,4 +34,11 @@ func formatLabels(labelMap map[string]string) string {
 		l = "<none>"
 	}
 	return l
+}
+
+func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
+	fmt.Fprintf(out, "Name:\t%s\n", m.Name)
+	fmt.Fprintf(out, "Annotations:\t%s\n", formatLabels(m.Annotations))
+	fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(m.Labels))
+	fmt.Fprintf(out, "Created:\t%s\n", m.CreationTimestamp)
 }
