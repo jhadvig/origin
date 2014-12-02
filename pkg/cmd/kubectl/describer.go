@@ -23,6 +23,12 @@ func DescriberFor(kind string, c *client.Client) (kctl.Describer, bool) {
 				return c.Deployments(namespace), nil
 			},
 		}, true
+	case "DeploymentConfig":
+		return &DeploymentConfigDescriber{
+			DeploymentConfigClient: func(namespace string) (client.DeploymentConfigInterface, error) {
+				return c.DeploymentConfigs(namespace), nil
+			},
+		}, true
 	}
 	return nil, false
 }
@@ -88,6 +94,32 @@ func (d *DeploymentDescriber) Describe(namespace, name string) (string, error) {
 			fmt.Fprintf(out, "\t\t%s\n", string(c.Type))
 		}
 		// TODO: Add description for controllerTemplate
+		return nil
+	})
+}
+
+// DeploymentConfigDescriber generates information about a DeploymentConfig
+type DeploymentConfigDescriber struct {
+	DeploymentConfigClient func(namespace string) (client.DeploymentConfigInterface, error)
+}
+
+func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
+	bc, err := d.DeploymentConfigClient(namespace)
+	if err != nil {
+		return "", err
+	}
+	deploymentConfig, err := bc.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, deploymentConfig.ObjectMeta)
+		fmt.Fprintf(out, "Latest Version:\t%s\n", string(deploymentConfig.LatestVersion))
+		fmt.Fprintf(out, "Triggers:\t\n")
+		for _, t := range deploymentConfig.Triggers {
+			fmt.Fprintf(out, "Type:\t%s\n", t.Type)
+		}
 		return nil
 	})
 }
