@@ -2,20 +2,30 @@ package kubectl
 
 import (
 	"fmt"
+	"strings"
 	"text/tabwriter"
+	"github.com/spf13/cobra"
 
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 )
 
-func DescriberFor(kind string, c *client.Client) (kctl.Describer, bool) {
+func DescriberFor(kind string, c *client.Client, cmd *cobra.Command) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
 		return &BuildDescriber{
 			BuildClient: func(namespace string) (client.BuildInterface, error) {
 				return c.Builds(namespace), nil
 			},
+		}, true
+	case "BuildConfig":
+		return &BuildConfigDescriber{
+			BuildConfigClient: func(namespace string) (client.BuildConfigInterface, error) {
+				return c.BuildConfigs(namespace), nil
+			},
+			Command: cmd,
 		}, true
 	case "Deployment":
 		return &DeploymentDescriber{
@@ -84,6 +94,34 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		fmt.Fprintf(out, "Status:\t%s\n", string(build.Status))
 		fmt.Fprintf(out, "Build Pod:\t%s\n", string(build.PodName))
 		d.DescribeParameters(build.Parameters, out)
+		return nil
+	})
+}
+
+// BuildConfigDescriber generates information about a buildConfig
+type BuildConfigDescriber struct {
+	BuildConfigClient func(namespace string) (client.BuildConfigInterface, error)
+	Command *cobra.Command
+}
+
+func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
+	bc, err := d.BuildConfigClient(namespace)
+	if err != nil {
+		return "", err
+	}
+	buildConfig, err := bc.Get(name)
+	if err != nil {
+		return "", err
+	}
+	webhooks := WebhookUrl(buildConfig, kubecmd.GetKubeConfig(d.Command))
+	buildDescriber := &BuildDescriber{}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, buildConfig.ObjectMeta)
+		buildDescriber.DescribeParameters(buildConfig.Parameters, out)
+		for whType, whURL := range webhooks {
+			fmt.Fprintf(out, "Webhook %s:\t%s\n", strings.Title(string(whType)), string(whURL))
+		}
 		return nil
 	})
 }

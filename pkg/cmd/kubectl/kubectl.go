@@ -44,7 +44,7 @@ https://github.com/openshift/origin.`,
 	// Initialize describer for Origin objects
 	factory.OriginDescriber = func(cmd *cobra.Command, mapping *meta.RESTMapping) (kubectl.Describer, error) {
 		if c, err := factory.OriginClient(cmd, mapping); err == nil {
-			if describer, ok := DescriberFor(mapping.Kind, c); ok == true {
+			if describer, ok := DescriberFor(mapping.Kind, c, cmd); ok == true {
 				return describer, nil
 			}
 		}
