@@ -47,7 +47,7 @@ https://github.com/openshift/origin.`,
 		if err != nil {
 			return nil, err
 		}
-		describer, ok := DescriberFor(mapping.Kind, c)
+		describer, ok := DescriberFor(mapping.Kind, c, cmd)
 		if !ok {
 			return nil, fmt.Errorf("unable to find describer for %s", mapping.Kind)
 		}

@@ -3,19 +3,31 @@ package kubectl
 import (
 	"fmt"
 	"text/tabwriter"
+	"github.com/spf13/cobra"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 )
 
-func DescriberFor(kind string, c *client.Client) (kctl.Describer, bool) {
+func DescriberFor(kind string, c *client.Client, cmd *cobra.Command) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
 		return &BuildDescriber{
 			BuildClient: func(namespace string) (client.BuildInterface, error) {
 				return c.Builds(namespace), nil
 			},
+		}, true
+	case "BuildConfig":
+		return &BuildConfigDescriber{
+			BuildConfigClient: func(namespace string) (client.BuildConfigInterface, error) {
+				return c.BuildConfigs(namespace), nil
+			},
+			Command: cmd,
 		}, true
 	case "Deployment":
 		return &DeploymentDescriber{
@@ -122,4 +134,60 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 		}
 		return nil
 	})
+}
+
+// BuildConfigDescriber generates information about a buildConfig
+type BuildConfigDescriber struct {
+	BuildConfigClient func(namespace string) (client.BuildConfigInterface, error)
+	Command *cobra.Command
+}
+
+func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
+	bc, err := d.BuildConfigClient(namespace)
+	if err != nil {
+		return "", err
+	}
+	buildConfig, err := bc.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	kubeConfig := kubecmd.GetKubeConfig(d.Command)
+	webhooks := GetWebhookUrl(buildConfig, kubeConfig)
+
+	// fmt.Printf("\n\n&v\n\n", webhooks)
+
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, buildConfig.ObjectMeta)
+		fmt.Fprintf(out, "Source:\t%s\n", string(buildConfig.Parameters.Source.Git.URI))
+		fmt.Fprintf(out, "Strategy:\t%s\n", string(buildConfig.Parameters.Strategy.Type))
+		fmt.Fprintf(out, "Image:\t%s\n", string(buildConfig.Parameters.Output.ImageTag))
+		for whType, whURL := range webhooks {
+			fmt.Fprintf(out, "Webhook-%s:\t%s\n", string(whType), string(whURL))
+		}
+		return nil
+	})
+}
+
+// GetWebhookUrl assembles array of webhook urls which can trigger given buildConfig
+func GetWebhookUrl(bc *buildapi.BuildConfig, config *kclient.Config) map[string]string {
+	// triggers := make([]string, len(bc.Triggers))
+	triggers := make(map[string]string)
+	for i, trigger := range bc.Triggers {
+		var whTrigger string
+		switch trigger.Type {
+		case "github":
+			whTrigger = trigger.GithubWebHook.Secret
+		case "generic":
+			whTrigger = trigger.GenericWebHook.Secret
+		}
+		apiVersion := latest.Version
+		if accessor, err := meta.Accessor(bc); err == nil && len(accessor.APIVersion()) > 0 {
+			apiVersion = accessor.APIVersion()
+		}
+		url := fmt.Sprintf("%s/osapi/%s/buildConfigHooks/%s/%s/%s", config.Host, apiVersion, bc.Name, whTrigger, bc.Triggers[i].Type)
+		triggers[string(trigger.Type)] = url
+	}
+	return triggers
 }
