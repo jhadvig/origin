@@ -18,8 +18,9 @@ import (
 // OriginFactory provides a Factory which handles both Kubernetes and Origin
 // objects
 type OriginFactory struct {
-	KubeClient    func(*cobra.Command, *kmeta.RESTMapping) (kubectl.RESTClient, error)
-	KubeDescriber func(cmd *cobra.Command, mapping *kmeta.RESTMapping) (kubectl.Describer, error)
+	KubeClient      func(*cobra.Command, *kmeta.RESTMapping) (kubectl.RESTClient, error)
+	KubeDescriber   func(cmd *cobra.Command, mapping *kmeta.RESTMapping) (kubectl.Describer, error)
+	OriginDescriber func(cmd *cobra.Command, mapping *kmeta.RESTMapping) (kubectl.Describer, error)
 	*kubecmd.Factory
 }
 
@@ -59,22 +60,9 @@ func (f *OriginFactory) OriginClient(c *cobra.Command, m *kmeta.RESTMapping) (*c
 	return client.New(kubecmd.GetKubeConfig(c))
 }
 
-// OriginDescriber providers describers for all Origin types
-func (f *OriginFactory) OriginDescriber(cmd *cobra.Command, m *kmeta.RESTMapping) (kubectl.Describer, error) {
-	c, err := f.OriginClient(cmd, m)
-	if err != nil {
-		return nil, err
-	}
-	describer, ok := DescriberFor(m.Kind, c)
-	if !ok {
-		return nil, fmt.Errorf("unable to find describer for %s", m.Kind)
-	}
-	return describer, nil
-}
-
 // GetRESTHelperFunc provides a helper to generate a client function in kubectl
 // commands.
-func (f *OriginFactory) GetRESTHelperFunc(cmd *cobra.Command) func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
+func (f *OriginFactory) RESTHelper(cmd *cobra.Command) func(*kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
 	return func(mapping *kmeta.RESTMapping) (*kubectl.RESTHelper, error) {
 		c, err := f.Client(cmd, mapping)
 		return kubectl.NewRESTHelper(c, mapping), err
