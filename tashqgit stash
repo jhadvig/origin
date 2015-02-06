@@ -1,0 +1,94 @@
+[1mdiff --git a/pkg/build/registry/buildlog/rest_test.go b/pkg/build/registry/buildlog/rest_test.go[m
+[1mindex 7b1af56..c5973c0 100644[m
+[1m--- a/pkg/build/registry/buildlog/rest_test.go[m
+[1m+++ b/pkg/build/registry/buildlog/rest_test.go[m
+[36m@@ -14,23 +14,18 @@[m [mimport ([m
+ [m
+ type podControl struct{}[m
+ [m
+[31m-func (p *podControl) getPod(namespace, name string) (*kapi.Pod, error) {[m
+[31m-	pod := &kapi.Pod{[m
+[31m-		ObjectMeta: kapi.ObjectMeta{[m
+[31m-			Name:      "foo",[m
+[31m-			Namespace: kapi.NamespaceDefault,[m
+[31m-		},[m
+[31m-		Spec: kapi.PodSpec{[m
+[31m-			Containers: []kapi.Container{[m
+[31m-				{[m
+[31m-					Name: "foo-container",[m
+[31m-				},[m
+[31m-			},[m
+[31m-		},[m
+[31m-		Status: kapi.PodStatus{[m
+[31m-			Host:  "foo-host",[m
+[31m-			Phase: kapi.PodRunning,[m
+[31m-		},[m
+[32m+[m[32mfunc (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {[m
+[32m+[m	[32mswitch podName {[m
+[32m+[m	[32mcase "pendingPod":[m
+[32m+[m		[32mpod := mockPod(kapi.PodPending)[m
+[32m+[m	[32mcase "runningPod":[m
+[32m+[m		[32mpod := mockPod(kapi.PodRunning)[m
+[32m+[m	[32mcase "succeededPod":[m
+[32m+[m		[32mpod := mockPod(kapi.PodSucceeded)[m
+[32m+[m	[32mcase "failedPod":[m
+[32m+[m		[32mpod := mockPod(kapi.PodFailed)[m
+[32m+[m	[32mcase "unknownPod":[m
+[32m+[m		[32mpod := mockPod(kapi.PodUnknown)[m
+ 	}[m
+ 	return pod, nil[m
+ }[m
+[36m@@ -49,6 +44,14 @@[m [mfunc TestRegistryResourceLocation(t *testing.T) {[m
+ 		api.BuildStatusCancelled: "",[m
+ 	}[m
+ [m
+[32m+[m	[32mpodPhases := map[string]kapi.PodPhase{[m
+[32m+[m		[32m"pendingPod": kapi.PodPending,[m
+[32m+[m		[32m"runningPod": kapi.PodRunning,[m
+[32m+[m		[32m"succeededPod": kapi.PodSucceeded,[m
+[32m+[m		[32m"failedPod": kapi.PodFailed,[m
+[32m+[m		[32m"unknownPod": kapi.PodUnknown,[m
+[32m+[m	[32m}[m
+[32m+[m
+ 	ctx := kapi.NewDefaultContext()[m
+ [m
+ 	for buildStatus, expectedLocation := range expectedLocations {[m
+[36m@@ -59,9 +62,9 @@[m [mfunc TestRegistryResourceLocation(t *testing.T) {[m
+ 		location, err := redirector.ResourceLocation(ctx, "foo")[m
+ [m
+ 		switch buildStatus {[m
+[31m-		case api.BuildStatusPending:[m
+[32m+[m		[32mcase api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusError, api.BuildStatusCancelled:[m
+ 			if err == nil {[m
+[31m-				t.Errorf("Expected error when Build is in Pending state, got nothing")[m
+[32m+[m				[32mt.Errorf("Expected error when Build is in %s state, got nothing", buildStatus)[m
+ 			}[m
+ 		default:[m
+ 			if err != nil {[m
+[36m@@ -75,6 +78,26 @@[m [mfunc TestRegistryResourceLocation(t *testing.T) {[m
+ 	}[m
+ }[m
+ [m
+[32m+[m[32mfunc mockPod(podPhase kapi.PodPhase) *kapi.Pod {[m
+[32m+[m	[32mreturn &kapi.Pod{[m
+[32m+[m		[32mObjectMeta: kapi.ObjectMeta{[m
+[32m+[m			[32mName:      "foo",[m
+[32m+[m			[32mNamespace: kapi.NamespaceDefault,[m
+[32m+[m		[32m},[m
+[32m+[m		[32mSpec: kapi.PodSpec{[m
+[32m+[m			[32mContainers: []kapi.Container{[m
+[32m+[m				[32m{[m
+[32m+[m					[32mName: "foo-container",[m
+[32m+[m				[32m},[m
+[32m+[m			[32m},[m
+[32m+[m		[32m},[m
+[32m+[m		[32mStatus: kapi.PodStatus{[m
+[32m+[m			[32mHost:  "foo-host",[m
+[32m+[m			[32mPhase: podPhase,[m
+[32m+[m		[32m},[m
+[32m+[m	[32m}[m
+[32m+[m[32m}[m
+[32m+[m
+ func mockBuild(buildStatus api.BuildStatus) *api.Build {[m
+ 	return &api.Build{[m
+ 		ObjectMeta: kapi.ObjectMeta{[m

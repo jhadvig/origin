@@ -48,18 +48,18 @@ func NewREST(b build.Registry, pn kclient.PodsNamespacer) apiserver.RESTStorage 
 func (r *REST) ResourceLocation(ctx kapi.Context, id string) (string, error) {
 	build, err := r.BuildRegistry.GetBuild(ctx, id)
 	if err != nil {
-		return "", errors.NewFieldNotFound("Build", id)
+		return "", errors.NewNotFound("Build", id)
 	}
 
 	// TODO: these must be status errors, not field errors
 	// TODO: choose a more appropriate "try again later" status code, like 202
 	if len(build.PodName) == 0 {
-		return "", errors.NewFieldRequired("Build.PodName", build.PodName)
+		return "", errors.NewNotFound("Build.PodName", build.PodName)
 	}
 
 	pod, err := r.PodControl.getPod(build.Namespace, build.PodName)
 	if err != nil {
-		return "", errors.NewFieldNotFound("Pod.Name", build.PodName)
+		return "", errors.NewNotFound("Pod.Name", build.PodName)
 	}
 
 	buildPodID := build.PodName

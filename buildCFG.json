@@ -1,0 +1,227 @@
+{
+  "apiVersion": "v1beta1",
+  "items": [
+    {
+      "apiVersion": "v1beta1",
+      "containerPort": 8080,
+      "creationTimestamp": null,
+      "id": "frontend",
+      "kind": "Service",
+      "labels": {
+        "template": "ruby-helloworld-sample"
+      },
+      "port": 5432,
+      "selector": {
+        "name": "frontend"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "172.121.17.3:5001/openshift/origin-ruby-sample",
+      "kind": "ImageRepository",
+      "metadata": {
+        "creationTimestamp": null,
+        "name": "origin-ruby-sample"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "BuildConfig",
+      "metadata": {
+        "creationTimestamp": null,
+        "name": "ruby-sample-build"
+      },
+      "parameters": {
+        "output": {
+          "imageTag": "openshift/origin-ruby-sample:latest",
+          "registry": "172.121.17.3:5001"
+        },
+        "source": {
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          },
+          "type": "Git"
+        },
+        "strategy": {
+          "type": "Docker"
+        }
+      },
+      "triggers": [
+        {
+          "github": {
+            "secret": "secret101"
+          },
+          "type": "github"
+        },
+        {
+          "generic": {
+            "secret": "secret101"
+          },
+          "type": "generic"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        },
+        "name": "frontend"
+      },
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers": [
+                  {
+                    "env": [
+                      {
+                        "name": "ADMIN_USERNAME",
+                        "value": "admin4M8"
+                      },
+                      {
+                        "name": "ADMIN_PASSWORD",
+                        "value": "Jg8wOr01"
+                      },
+                      {
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "km0rnyrk"
+                      },
+                      {
+                        "name": "MYSQL_DATABASE",
+                        "value": "root"
+                      }
+                    ],
+                    "image": "172.121.17.3:5001/openshift/origin-ruby-sample",
+                    "imagePullPolicy": "",
+                    "name": "ruby-helloworld",
+                    "ports": [
+                      {
+                        "containerPort": 8080
+                      }
+                    ]
+                  }
+                ],
+                "id": "",
+                "restartPolicy": {},
+                "version": "v1beta1",
+                "volumes": null
+              }
+            },
+            "labels": {
+              "name": "frontend",
+              "template": "ruby-helloworld-sample"
+            }
+          },
+          "replicaSelector": {
+            "name": "frontend"
+          },
+          "replicas": 1
+        },
+        "strategy": {
+          "type": "Recreate"
+        }
+      },
+      "triggers": [
+        {
+          "imageChangeParams": {
+            "automatic": true,
+            "containerNames": [
+              "ruby-helloworld"
+            ],
+            "repositoryName": "172.121.17.3:5001/openshift/origin-ruby-sample",
+            "tag": "latest"
+          },
+          "type": "ImageChange"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1beta1",
+      "containerPort": 3306,
+      "creationTimestamp": null,
+      "id": "database",
+      "kind": "Service",
+      "labels": {
+        "template": "ruby-helloworld-sample"
+      },
+      "port": 5434,
+      "selector": {
+        "name": "database"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        },
+        "name": "database"
+      },
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers": [
+                  {
+                    "env": [
+                      {
+                        "name": "MYSQL_ROOT_PASSWORD",
+                        "value": "km0rnyrk"
+                      },
+                      {
+                        "name": "MYSQL_DATABASE",
+                        "value": "root"
+                      }
+                    ],
+                    "image": "mysql",
+                    "imagePullPolicy": "",
+                    "name": "ruby-helloworld-database",
+                    "ports": [
+                      {
+                        "containerPort": 3306
+                      }
+                    ]
+                  }
+                ],
+                "id": "",
+                "restartPolicy": {},
+                "version": "v1beta1",
+                "volumes": null
+              }
+            },
+            "labels": {
+              "name": "database",
+              "template": "ruby-helloworld-sample"
+            }
+          },
+          "replicaSelector": {
+            "name": "database"
+          },
+          "replicas": 1
+        },
+        "strategy": {
+          "type": "Recreate"
+        }
+      },
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ]
+    }
+  ],
+  "kind": "Config",
+  "metadata": {
+    "creationTimestamp": "2014-11-28T06:38:51-05:00",
+    "name": "ruby-helloworld-sample",
+    "selfLink": "/osapi/v1beta1/templateConfigs/ruby-helloworld-sample"
+  }
+}

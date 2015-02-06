@@ -1,0 +1,248 @@
+{
+  "apiVersion": "v1beta1",
+  "items": [
+    {
+      "apiVersion": "v1beta1",
+      "host": "guestbook.example.com",
+      "kind": "Route",
+      "metadata": {
+        "creationTimestamp": null
+      },
+      "serviceName": "frontend"
+    },
+    {
+      "apiVersion": "v1beta1",
+      "containerPort": 0,
+      "creationTimestamp": null,
+      "id": "frontend",
+      "kind": "Service",
+      "labels": {
+        "template": "guestbook-example"
+      },
+      "port": 5432,
+      "selector": {
+        "name": "guestbook"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "containerPort": 0,
+      "creationTimestamp": null,
+      "id": "redis-master",
+      "kind": "Service",
+      "labels": {
+        "template": "guestbook-example"
+      },
+      "port": 10000,
+      "selector": {
+        "name": "redis-master"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "containerPort": 0,
+      "creationTimestamp": null,
+      "id": "redis-slave",
+      "kind": "Service",
+      "labels": {
+        "template": "guestbook-example"
+      },
+      "port": 10001,
+      "selector": {
+        "name": "redis-slave"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "creationTimestamp": null,
+      "currentState": {
+        "manifest": {
+          "containers": null,
+          "id": "",
+          "restartPolicy": {},
+          "version": "",
+          "volumes": null
+        }
+      },
+      "desiredState": {
+        "manifest": {
+          "containers": [
+            {
+              "env": [
+                {
+                  "key": "REDIS_PASSWORD",
+                  "name": "REDIS_PASSWORD",
+                  "value": "v0yjpPRb"
+                }
+              ],
+              "image": "dockerfile/redis",
+              "imagePullPolicy": "",
+              "name": "master",
+              "ports": [
+                {
+                  "containerPort": 6379
+                }
+              ]
+            }
+          ],
+          "id": "",
+          "restartPolicy": {},
+          "version": "v1beta1",
+          "volumes": null
+        }
+      },
+      "id": "redis-master",
+      "kind": "Pod",
+      "labels": {
+        "template": "guestbook-example"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "creationTimestamp": null,
+      "currentState": {
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "containers": null,
+              "id": "",
+              "restartPolicy": {},
+              "version": "",
+              "volumes": null
+            }
+          }
+        },
+        "replicas": 0
+      },
+      "desiredState": {
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "key": "ADMIN_USERNAME",
+                      "name": "ADMIN_USERNAME",
+                      "value": "admin517"
+                    },
+                    {
+                      "key": "ADMIN_PASSWORD",
+                      "name": "ADMIN_PASSWORD",
+                      "value": "cekCMyk3"
+                    },
+                    {
+                      "key": "REDIS_PASSWORD",
+                      "name": "REDIS_PASSWORD",
+                      "value": "v0yjpPRb"
+                    }
+                  ],
+                  "image": "brendanburns/php-redis",
+                  "imagePullPolicy": "",
+                  "name": "php-redis",
+                  "ports": [
+                    {
+                      "containerPort": 80,
+                      "hostPort": 8000
+                    }
+                  ]
+                }
+              ],
+              "id": "",
+              "restartPolicy": {},
+              "version": "v1beta1",
+              "volumes": null
+            }
+          },
+          "labels": {
+            "name": "frontend",
+            "template": "guestbook-example"
+          }
+        },
+        "replicaSelector": {
+          "name": "frontend",
+          "template": "guestbook-example"
+        },
+        "replicas": 3
+      },
+      "id": "guestbook",
+      "kind": "ReplicationController",
+      "labels": {
+        "template": "guestbook-example"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "creationTimestamp": null,
+      "currentState": {
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "containers": null,
+              "id": "",
+              "restartPolicy": {},
+              "version": "",
+              "volumes": null
+            }
+          }
+        },
+        "replicas": 0
+      },
+      "desiredState": {
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "key": "REDIS_PASSWORD",
+                      "name": "REDIS_PASSWORD",
+                      "value": "v0yjpPRb"
+                    }
+                  ],
+                  "image": "brendanburns/redis-slave",
+                  "imagePullPolicy": "",
+                  "name": "slave",
+                  "ports": [
+                    {
+                      "containerPort": 6379,
+                      "hostPort": 6380
+                    }
+                  ]
+                }
+              ],
+              "id": "redis-slave",
+              "restartPolicy": {},
+              "version": "v1beta1",
+              "volumes": null
+            }
+          },
+          "labels": {
+            "name": "redis-slave",
+            "template": "guestbook-example"
+          }
+        },
+        "replicaSelector": {
+          "name": "redis-slave",
+          "template": "guestbook-example"
+        },
+        "replicas": 2
+      },
+      "id": "redis-slave",
+      "kind": "ReplicationController",
+      "labels": {
+        "template": "guestbook-example"
+      }
+    }
+  ],
+  "kind": "Config",
+  "metadata": {
+    "annotations": {
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    },
+    "creationTimestamp": "2014-11-28T05:55:01-05:00",
+    "name": "guestbook-example",
+    "selfLink": "/osapi/v1beta1/templateConfigs/guestbook-example"
+  }
+}

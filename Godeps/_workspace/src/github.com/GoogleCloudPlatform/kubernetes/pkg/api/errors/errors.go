@@ -64,6 +64,32 @@ func FromObject(obj runtime.Object) error {
 	return &UnexpectedObjectError{obj}
 }
 
+func NewAccepted(kind, name string) error {
+	return &StatusError{api.Status{
+		Status: api.StatusWorking,
+		Code: http.StatusAccepted,
+		Reason: api.StatusReasonWorking,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID: name
+		},
+		Message: fmt.Sprintf("%s %q accepted", kind, name),
+	}}
+}
+
+func NewNoContent(kind, name stringr) error {
+	return &StatusError{api.Status{
+		Status: api.StatusNoContent,
+		Code: http.StatusNoContent,
+		Reason: api.StatusReasonNoContent,
+		Details: &api.StatusDetails{
+			Kind: kind,
+			ID: name
+		},
+		Message: fmt.Sprintf("%s %q no content", kind, name),
+	}}
+}
+
 // NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
 func NewNotFound(kind, name string) error {
 	return &StatusError{api.Status{
