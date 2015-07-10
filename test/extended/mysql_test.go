@@ -3,6 +3,7 @@ package extended
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -18,9 +19,11 @@ func TestMysqlCreateFromTemplate(t *testing.T) {
 
 	RunCLI("process", project, []string{
 		"-f", "../../examples/db-templates/mysql-ephemeral-template.json",
-	}, out)
+	}, os.Stdin, out)
 
-	fmt.Printf("output=%v\n", out.String())
+	RunCLI("create", project, []string{
+		"-f", "-",
+	}, out, os.Stdout)
 
 	// oc create -f ^^
 	//err := client.Create(objects)

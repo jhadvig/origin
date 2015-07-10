@@ -62,9 +62,9 @@ func LoginAndCreateProject(user, project string) string {
 	return projectName
 }
 
-func RunCLI(commandName, ns string, args []string, out io.Writer) error {
+func RunCLI(commandName, ns string, args []string, in io.Reader, out io.Writer) error {
 	// TODO: Handle stdin
-	cmd := cli.NewCommandCLI("oc", "openshift", os.Stdin, out)
+	cmd := cli.NewCommandCLI("oc", "openshift", in, out)
 	for _, c := range cmd.Commands() {
 		c.SetOutput(out)
 	}
