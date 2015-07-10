@@ -8,35 +8,66 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source ${OS_ROOT}/hack/util.sh
 source ${OS_ROOT}/hack/common.sh
 
+echo "[INFO] Starting end-to-end test"
+
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
-# TODO: Randomize these ports
-export OS_MASTER_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
-export OS_DNS_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
-export ETCD_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
+# Use either the latest release built images, or latest.
+if [[ -z "${USE_IMAGES-}" ]]; then
+	USE_IMAGES='openshift/origin-${component}:latest'
+	if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+		COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
+	fi
+fi
 
-DEFAULT_SERVER_IP=$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}')
 
-export OS_MASTER_ADDR=${DEFAULT_SERVER_IP}:${OS_MASTER_PORT}
-export OS_DNS_ADDR=${DEFAULT_SERVER_IP}:${OS_DNS_PORT}
-export KUBERNETES_MASTER="https://${OS_MASTER_ADDR}"
+if [[ -z "${BASETMPDIR-}" ]]; then
+	TMPDIR="${TMPDIR:-"/tmp"}"
+	BASETMPDIR="${TMPDIR}/openshift-extended-tests"
+	sudo rm -rf "${BASETMPDIR}" && mkdir -p ${BASETMPDIR}
+  if [[ $? != 0 ]]; then
+    echo "[INFO] Unmounting volumes ..."
+    findmnt -lo TARGET | grep openshift-extended-tests | xargs -r sudo umount
+    rm -rf ${BASETMPDIR} && mkdir -p ${BASETMPDIR}
+  fi
+fi
 
-export TMPDIR=${TMPDIR:-/tmp}
-export BASETMPDIR="${TMPDIR}/openshift-extended-tests"
+ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+VOLUME_DIR="${BASETMPDIR}/volumes"
+FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
+LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
+mkdir -p $LOG_DIR
+mkdir -p $ARTIFACT_DIR
 
-# Remove all test artifacts from the previous run
-rm -rf ${BASETMPDIR} && mkdir -p ${BASETMPDIR}
+DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
+API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
+API_PORT="${API_PORT:-8443}"
+API_SCHEME="${API_SCHEME:-https}"
+MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
+PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
+KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
+KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
+KUBELET_PORT="${KUBELET_PORT:-10250}"
 
-# Setup directories and certificates for 'curl'
-export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
-export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-127.0.0.1"
-export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export OPENSHIFT_ON_PANIC=crash
+SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
+
+# use the docker bridge ip address until there is a good way to get the auto-selected address from master
+# this address is considered stable
+# used as a resolve IP to test routing
+CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
+
+STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
+DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
+CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
+GO_OUT="${OS_ROOT}/_output/local/go/bin"
+
+# set path so OpenShift is available
+export PATH="${GO_OUT}:${PATH}"
 
 cleanup() {
     set +e
@@ -49,128 +80,117 @@ cleanup() {
     echo "[INFO] Cleanup complete"
 }
 
-# TODO: There is a lot of code shared between this test launcher and e2e test
-#       launcher.
-start_server() {
-  mkdir -p ${BASETMPDIR}/volumes
-  ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
-  SERVER_HOSTNAME_LIST="${DEFAULT_SERVER_IP},localhost"
-  while read -r IP_ADDRESS; do
-    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-  done <<< "${ALL_IP_ADDRESSES}"
+trap "exit" INT TERM
+trap "cleanup" EXIT
 
-  echo "[INFO] Create certificates for the OpenShift master"
-  env "PATH=${PATH}" openshift admin create-master-certs \
-    --overwrite=false \
-    --cert-dir="${MASTER_CONFIG_DIR}" \
-    --hostnames="${SERVER_HOSTNAME_LIST}" \
-    --master="https://${OS_MASTER_ADDR}" \
-    --public-master="https://${OS_MASTER_ADDR}"
+# Setup
+stop_openshift_server
+echo "[INFO] `openshift version`"
+echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
+echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+echo "[INFO] Using images:              ${USE_IMAGES}"
 
-  echo "[INFO] Create certificates for the OpenShift node"
-  env "PATH=${PATH}" openshift admin create-node-config \
-    --listen="https://0.0.0.0:10250" \
-    --node-dir="${NODE_CONFIG_DIR}" \
-    --node="127.0.0.1" \
-    --hostnames="${SERVER_HOSTNAME_LIST}" \
-    --master="https://${OS_MASTER_ADDR}" \
-    --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-    --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-    --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-    --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-    --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+# Start All-in-one server and wait for health
+echo "[INFO] Create certificates for the OpenShift server"
+# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
+ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
+while read -r IP_ADDRESS
+do
+	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
+done <<< "${ALL_IP_ADDRESSES}"
+
+openshift admin create-master-certs \
+	--overwrite=false \
+	--cert-dir="${MASTER_CONFIG_DIR}" \
+	--hostnames="${SERVER_HOSTNAME_LIST}" \
+	--master="${MASTER_ADDR}" \
+	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
+
+echo "[INFO] Creating OpenShift node config"
+openshift admin create-node-config \
+	--listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+	--node-dir="${NODE_CONFIG_DIR}" \
+	--node="${KUBELET_HOST}" \
+	--hostnames="${KUBELET_HOST}" \
+	--master="${MASTER_ADDR}" \
+	--node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
 oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 
-  # create openshift config
-  openshift start \
-    --write-config=${SERVER_CONFIG_DIR} \
-    --create-certs=false \
-    --listen="https://0.0.0.0:${OS_MASTER_PORT}" \
-    --public-master="https://${OS_MASTER_ADDR}" \
-    --etcd="http://127.0.0.1:${ETCD_PORT}" \
-    --hostname="127.0.0.1" \
-    --volume-dir="${BASETMPDIR}/volumes" \
-    --master="https://${OS_MASTER_ADDR}" \
-    --latest-images 
+echo "[INFO] Creating OpenShift config"
+openshift start \
+	--write-config=${SERVER_CONFIG_DIR} \
+	--create-certs=false \
+    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
+    --hostname="${KUBELET_HOST}" \
+    --volume-dir="${VOLUME_DIR}" \
+    --etcd-dir="${ETCD_DATA_DIR}" \
+    --images="${USE_IMAGES}"
 
-  echo "[INFO] Starting OpenShift ..."
-  sudo env "PATH=${PATH}" openshift start \
-    --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-    --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-    --loglevel=${VERBOSE:-3} &> ${BASETMPDIR}/server.log &
-  echo -n $! > ${BASETMPDIR}/server.pid
-}
 
-start_docker_registry() {
-  mkdir -p ${BASETMPDIR}/.registry
-  echo "[INFO] Creating Router ..."
-  oadm router --create --credentials="${KUBECONFIG}" \
-    --images='openshift/origin-${component}:latest' &>/dev/null
+echo "[INFO] Starting OpenShift server"
+sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+	--master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	--node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+    --loglevel=4 \
+    &> "${LOG_DIR}/openshift.log" &
+OS_PID=$!
 
-  echo "[INFO] Creating Registry ..."
-  oadm registry --create --credentials="${KUBECONFIG}" \
-    --mount-host="${BASETMPDIR}/.registry" \
-    --images='openshift/origin-${component}:latest' &>/dev/null
-}
+export HOME="${FAKE_HOME_DIR}"
+# This directory must exist so Docker can store credentials in $HOME/.dockercfg
+mkdir -p ${FAKE_HOME_DIR}
 
-push_to_registry() {
-  local image=$1
-  local registry=$2
-  echo "[INFO] Caching $image to $registry"
-  ( docker tag $image "${registry}/${image}" && \
-    docker push "${registry}/${image}" \
-  ) &>/dev/null
-}
+export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
 
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+if [[ "${API_SCHEME}" == "https" ]]; then
+	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
-trap cleanup EXIT SIGINT
+	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
+	sudo chmod -R a+rwX "${KUBECONFIG}"
+	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
+fi
 
-# Start the Etcd server
-echo "[INFO] Starting etcd server (127.0.0.1:${ETCD_PORT})"
-start_etcd
-export ETCD_STARTED="1"
 
-# Start OpenShift sever that will be common for all extended test cases
-start_server
+wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
-# Wait for the API server to come up
-wait_for_url_timed "https://${OS_MASTER_ADDR}/healthz" "" 90*TIME_SEC >/dev/null
-wait_for_url_timed "https://${OS_MASTER_ADDR}/osapi" "" 90*TIME_SEC >/dev/null
-wait_for_url "https://${OS_MASTER_ADDR}/api/v1beta3/nodes/127.0.0.1" "" 0.25 80 >/dev/null
+# install the router
+echo "[INFO] Installing the router"
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
 
-# Start the Docker registry (172.30.17.101:5000)
-start_docker_registry
+# install the registry. The --mount-host option is provided to reuse local storage.
+echo "[INFO] Installing the registry"
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
 
-wait_for_command '[[ "$(oc get endpoints docker-registry -t "{{ if .endpoints}}{{ len .endpoints }}{{ else }}0{{ end }}" 2>/dev/null || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=/tmp/openshift-extended-tests/openshift.local.config/master/admin.kubeconfig || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
-REGISTRY_ADDR=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{.port }}" \
-  service docker-registry)
-echo "[INFO] Verifying the docker-registry is up at ${REGISTRY_ADDR}"
-wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
+DOCKER_REGISTRY=$(oc get service docker-registry --output-version=v1 --template="{{ .spec.clusterIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" --config=/tmp/openshift-extended-tests/openshift.local.config/master/admin.kubeconfig)
 
-# TODO: We need to pre-push the images that we use for builds to avoid getting
-#       "409 - Image already exists" during the 'push' when the Build finishes.
-#       This is because Docker Registry cannot handle parallel pushes.
-#       See: https://github.com/docker/docker-registry/issues/537
-push_to_registry "openshift/ruby-20-centos7" $REGISTRY_ADDR
-push_to_registry "openshift/origin-custom-docker-builder" $REGISTRY_ADDR
 
-export REGISTRY_ADDR
+registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
+echo "[INFO] Registry IP - ${registry}"
 
-[ ! -z "${DEBUG-}" ] && set +e
+echo "[INFO] Starting extended tests ..."
 
-# Run all extended tests cases
-while true; do
-  echo "[INFO] Starting extended tests ..."
-  time OS_TEST_PACKAGE="test/extended" OS_TEST_TAGS="extended" OS_TEST_NAMESPACE="extended" ${OS_ROOT}/hack/test-integration.sh $@
-  if [ ! -z "${DEBUG-}" ]; then
-    read -p "Do you want to re-run the test cases? " yn
-    case $yn in
-        [Nn]* ) exit;;
-        * ) echo "Please answer yes or no.";;
-    esac
-  fi
-done
+# time go test ./test/extended/ #"${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}"  | grep --color=never -E "${1-Test}" | xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
+echo "[INFO] MASTER IP - ${MASTER_ADDR}"
+echo "[INFO] SEVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
+
+MASTER_ADDR="${MASTER_ADDR}" SERVER_CONFIG_DIR="${SERVER_CONFIG_DIR}" GOPATH="$(godep path):/data" go test -v ./test/extended
+
+
+sleep 9000
