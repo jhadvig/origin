@@ -29,10 +29,6 @@ import (
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
 
-func init() {
-	RequireEtcd()
-}
-
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
 func RequireServer() {

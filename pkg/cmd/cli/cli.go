@@ -52,7 +52,7 @@ created for you.
 
 You can easily switch between multiple projects using '%[1]s project <projectname>'.`
 
-func NewCommandCLI(name, fullName string) *cobra.Command {
+func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
 	errout := os.Stderr
