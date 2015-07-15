@@ -1,6 +1,7 @@
 package extended
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,7 +79,7 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 	}
 
 	result, err := oc.Run("exec").
-		Args(podName, "--", "curl", "http://localhost:8080").
+		Args(podName, "--", "/bin/bash", "-c", fmt.Sprintf("%q", `echo \$TEST_ENV`)).
 		Verbose().
 		Output()
 	if err != nil {

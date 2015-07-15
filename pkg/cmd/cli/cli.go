@@ -188,7 +188,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubectl":
 		cmd = NewCmdKubectl(basename, out)
 	default:
-		cmd = NewCommandCLI(basename, basename)
+		cmd = NewCommandCLI(basename, basename, out)
 	}
 
 	if cmd.UsageFunc() == nil {
