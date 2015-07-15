@@ -201,7 +201,7 @@ func GetMasterAddr() string {
 }
 
 // From github.com/GoogleCloudPlatform/kubernetes/pkg/api/generator.go
-var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789-")
+var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 
 func randSeq(n int) string {
 	b := make([]rune, n)
@@ -254,6 +254,34 @@ func waitForBuildComplete(buildName string, w watch.Interface) error {
 		default:
 			fmt.Printf("Build %q status is now %q\n", buildName, eventBuild.Status.Phase)
 		}
+	}
+	return fmt.Errorf("unexpected closure of result channel for watcher")
+}
+
+// waitForEndpoint waits for all the endpoints from given namespace to be available
+func waitForEndpoint(endpointName string, w watch.Interface) error {
+	fmt.Printf("Waiting for endpoint %q ...\n", endpointName)
+	for event := range w.ResultChan() {
+		eventEndpoint, ok := event.Object.(*kapi.Endpoints)
+		if !ok {
+			return fmt.Errorf("cannot covert input to endpoint object")
+		}
+		if endpointName != eventEndpoint.Name {
+			continue
+		}
+		if len(eventEndpoint.Subsets) != 0 {
+			fmt.Printf("Endpoint %s has available following adresses:\n", eventEndpoint.Name)
+			for _, set := range eventEndpoint.Subsets {
+				for _, address := range set.Addresses {
+					for _, port := range set.Ports {
+						endpoint := fmt.Sprintf("%s:%d", address.IP, port.Port)
+						fmt.Printf("----> %s\n", endpoint)
+					}
+				}
+			}
+			return nil
+		}
+		fmt.Printf("No %s endpoints are yet available ...", eventEndpoint.Name)
 	}
 	return fmt.Errorf("unexpected closure of result channel for watcher")
 }

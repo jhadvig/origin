@@ -5,6 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
 func init() {
@@ -33,5 +36,20 @@ func TestMysqlCreateFromTemplate(t *testing.T) {
 		t.Fatalf("Unexpected error while creating: %v", err)
 	}
 
-	oc.Run("get").Args("service", "mysql").Template("{{ .spec.ClusterIP }}").Execute()
+	endpointWatcher, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).
+		Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Unable to create watcher for endpoints: %v", err)
+	}
+	defer endpointWatcher.Stop()
+
+	list, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).List(labels.Everything())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	for _, endpoint := range list.Items {
+		if err := waitForEndpoint(endpoint.Name,endpointWatcher); err != nil {
+			t.Fatalf("Endpoint error: %v\n", err)
+		}
+	}
 }
