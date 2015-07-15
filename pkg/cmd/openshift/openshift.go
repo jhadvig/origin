@@ -108,7 +108,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli"), out)
+	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", out))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(version.NewVersionCommand(name))
