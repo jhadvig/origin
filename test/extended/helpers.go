@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -171,6 +173,33 @@ func (c *CLI) Execute() error {
 	}
 	os.Stdout.Sync()
 	return err
+}
+
+func (c *CLI) WaitForResource() (string, error) {
+	timeout := time.After(120 * time.Second)
+	retry := time.Tick(500 * time.Millisecond)
+	for {
+		select {
+		case <- timeout:
+			return "", fmt.Errorf("ERROR: Waiting for %s %s has timeouted", c.verb, c.globalArgs)
+		case <- retry:
+			result, err := c.Output();
+			if  err != nil {
+				return "", err
+			} else if result != "<no value>" {
+				return result, nil
+			}
+		}
+	}
+}
+
+func PingEndpoint(address string) {
+	conn, err := net.Dial("tcp", address)
+	if err != nil {
+		FatalErr(fmt.Errorf("Error while reaching %s endpoint: %v\n", address, err))
+	}
+	defer conn.Close()
+	fmt.Printf("Endpoint %s is reachable\n", address)
 }
 
 // FatalErr exits the test in case a fatal error occurred.
