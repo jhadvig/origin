@@ -36,14 +36,13 @@ func TestMysqlCreateFromTemplate(t *testing.T) {
 
 	oc.Run("get").Args("service", "mysql").Template("{{ .spec.ClusterIP }}").Execute()
 
-	ip, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}").WaitForResource()
+	// Wait until endpoint is available
+	_, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}").WaitForResource()
 	if err != nil {
 		t.Fatalf("Unexpected error while waiting for service endpoint: %v", err)
 	}
-	fmt.Printf("\n IP -> %s\n", ip)
 
-	endpoint, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}").Output()
-	fmt.Printf("\n ENDPOINT -> %s\n", endpoint)
-
-	PingEndpoint(endpoint)
+	// Get socket IP address, port and check if the socket is open
+	socket, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}").Output()
+	CheckSocket(socket)
 }

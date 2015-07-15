@@ -175,6 +175,9 @@ func (c *CLI) Execute() error {
 	return err
 }
 
+// WaitForResource will wait until the resource will be available.
+// GO template returns '<no value>' if the demanded resource is not available.
+// Returns resource as a string
 func (c *CLI) WaitForResource() (string, error) {
 	timeout := time.After(120 * time.Second)
 	retry := time.Tick(500 * time.Millisecond)
@@ -193,6 +196,7 @@ func (c *CLI) WaitForResource() (string, error) {
 	}
 }
 
+// PingEndpoint will check if the socket is open
 func PingEndpoint(address string) {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
