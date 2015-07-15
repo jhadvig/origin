@@ -186,11 +186,11 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOS
 
 # install the router
 echo "[INFO] Installing the router"
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
 
 wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=/tmp/openshift-extended-tests/openshift.local.config/master/admin.kubeconfig || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
@@ -206,6 +206,6 @@ echo "[INFO] Starting extended tests ..."
 
 # time go test ./test/extended/ #"${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}"  | grep --color=never -E "${1-Test}" | xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
-echo "[INFO] SEVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
+echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
 
 MASTER_ADDR="${MASTER_ADDR}" SERVER_CONFIG_DIR="${SERVER_CONFIG_DIR}" GOPATH="$(godep path):/data" go test -v ./test/extended
