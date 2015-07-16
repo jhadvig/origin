@@ -7,10 +7,11 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func init() {
-	RequireServerVars()
+	exutil.RequireServerVars()
 }
 
 var (
@@ -24,7 +25,7 @@ var (
 // case the STI build should read that file and set all environment variables
 // from that file to output image.
 func TestSTIEnvironmentBuild(t *testing.T) {
-	oc := NewCLI("build-sti-env").Verbose()
+	oc := exutil.NewCLI("build-sti-env").Verbose()
 
 	// Create imageStream used in this test
 	if err := oc.Run("create").Args("-f", imageStreamFixture).Execute(); err != nil {
@@ -51,7 +52,7 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 		t.Fatalf("Unable to start build: %v", err)
 	}
 
-	if err := waitForBuildComplete(buildName, buildWatcher); err != nil {
+	if err := exutil.WaitForBuildComplete(buildName, buildWatcher); err != nil {
 		logs, _ := oc.Run("build-logs").Args(buildName, "--nowait").Output()
 		t.Fatalf("Build error: %v\n%s\n", err, logs)
 	}
@@ -66,13 +67,13 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 	defer podWatcher.Stop()
 
 	// Run the pod with the built image and verify it's content
-	podName, err := createPodForImageStream(oc, "test")
+	podName, err := exutil.CreatePodForImageStream(oc, "test")
 	if err != nil {
 		t.Fatalf("Unable to create pod for verification: %v", err)
 	}
 	defer oc.Run("delete").Args("pod", podName).Execute()
 
-	if err := waitForPodRunning(podName, podWatcher); err != nil {
+	if err := exutil.WaitForPodRunning(podName, podWatcher); err != nil {
 		logs, _ := oc.Run("logs").Args("-p", podName).Output()
 		t.Fatalf("Pod error: %v\n%s\n", err, logs)
 	}
