@@ -1,11 +1,13 @@
 package extended
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
 func init() {
@@ -34,15 +36,20 @@ func TestMysqlCreateFromTemplate(t *testing.T) {
 		t.Fatalf("Unexpected error while creating: %v", err)
 	}
 
-	oc.Run("get").Args("service", "mysql").Template("{{ .spec.ClusterIP }}").Execute()
-
-	// Wait until endpoint is available
-	_, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}").WaitForResource()
+	endpointWatcher, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).
+		Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
-		t.Fatalf("Unexpected error while waiting for service endpoint: %v", err)
+		t.Fatalf("Unable to create watcher for endpoints: %v", err)
 	}
+	defer endpointWatcher.Stop()
 
-	// Get socket IP address, port and check if the socket is open
-	socket, err := oc.Run("get").Args("service", "mysql").Template("{{ .spec.clusterIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}").Output()
-	CheckSocket(socket)
+	list, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).List(labels.Everything())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	for _, endpoint := range list.Items {
+		if err := waitForEndpoint(endpoint.Name,endpointWatcher); err != nil {
+			t.Fatalf("Endpoint error: %v\n", err)
+		}
+	}
 }
