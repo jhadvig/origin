@@ -8,17 +8,19 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func init() {
-	RequireServerVars()
+	exutil.RequireServerVars()
 }
 
 var templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
 
 func TestMysqlCreateFromTemplate(t *testing.T) {
 	// FIXME: Remove the Verbose()
-	oc := NewCLI("mysql-create").Verbose()
+	oc := exutil.NewCLI("mysql-create").Verbose()
 
 	// Process the template and store the output in temporary file
 	listOutput, err := oc.Run("process").Args("-f", templatePath).Output()
@@ -48,7 +50,7 @@ func TestMysqlCreateFromTemplate(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	for _, endpoint := range list.Items {
-		if err := waitForEndpoint(endpoint.Name,endpointWatcher); err != nil {
+		if err := exutil.WaitForEndpoint(endpoint.Name, endpointWatcher); err != nil {
 			t.Fatalf("Endpoint error: %v\n", err)
 		}
 	}
