@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
+	. "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/util/namer"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/spf13/cobra"
 )
@@ -31,19 +33,55 @@ type CLI struct {
 	adminClient       *client.Client
 	adminKubeClient   *kclient.Client
 	adminClientConfig *kclient.Config
+	Framework         *Framework
 }
 
-// NewCLI returns a new OpenShift CLI client for testing
+// NewCLI initialize the Kubernetes E2E framework, sets namespaces and provide
+// project role bindings.
+// This function must be called only from inside Describe() or Context() as it
+// setups BeforeEach() hook.
 func NewCLI(project string) *CLI {
-	client := CLI{}
-	return client.SetupProject(project)
+	client := &CLI{}
+	client.Framework = NewFramework(project)
+	client.SetupClients()
+	BeforeEach(func() {
+		if ns := client.Framework.Namespace; ns != nil {
+			Logf("Adding project role bindings to %q namespace", ns.Name)
+			client.SetupProject(ns.Name).SetNamespaceFromFramework()
+		} else {
+			Failf("Framework does not have the namespace set")
+		}
+	})
+	return client
 }
 
-// SetupProject creates a random project (and namespace) used for executing tests
-func (c *CLI) SetupProject(name string) *CLI {
-	var (
-		err error
-	)
+// SetupProject setups a project role binding for the Kubernetes namespace
+func (c *CLI) SetupProject(ns string) *CLI {
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns) {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            binding.RoleRef.Name,
+			RoleNamespace:       binding.RoleRef.Namespace,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns, c.AdminRESTClient()),
+			Users:               binding.Users.List(),
+			Groups:              binding.Groups.List(),
+		}
+		if err := addRole.AddRole(); err != nil {
+			Failf("Unable to add role binding %+v to namespace %q", addRole, ns)
+		}
+	}
+	return c
+}
+
+// SetNamespaceFromFramework sets the current namespace to Kubernetes E2E Framework
+// namespace.
+func (c *CLI) SetNamespaceFromFramework() {
+	c.namespace = c.Framework.Namespace.Name
+	return
+}
+
+// SetupClients setups OpenShift and Kubernetes REST clients
+func (c *CLI) SetupClients() *CLI {
+	var err error
 
 	if c.adminClient, err = testutil.GetClusterAdminClient(adminConfigPath); err != nil {
 		FatalErr(err)
@@ -56,14 +94,6 @@ func (c *CLI) SetupProject(name string) *CLI {
 	if c.adminClientConfig, err = testutil.GetClusterAdminClientConfig(adminConfigPath); err != nil {
 		FatalErr(err)
 	}
-
-	username := namer.GetName("test-user", randSeq(5), util.DNS1123SubdomainMaxLength)
-	project := namer.GetName(name, "test-"+randSeq(5), util.DNS1123SubdomainMaxLength)
-	if _, err := testutil.CreateNewProject(c.adminClient, *c.adminClientConfig, project, username); err != nil {
-		FatalErr(err)
-	}
-	c.namespace = project
-
 	return c
 }
 
