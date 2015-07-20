@@ -1,57 +1,51 @@
+// +build default
+
 package extended
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func init() {
-	exutil.RequireServerVars()
-}
+var _ = Describe("MySQL ephemeral template", func() {
+	defer GinkgoRecover()
 
-var templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
+	var templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
+	var oc = exutil.NewCLI("mysql-create")
 
-func TestMysqlCreateFromTemplate(t *testing.T) {
-	// FIXME: Remove the Verbose()
-	oc := exutil.NewCLI("mysql-create").Verbose()
+	Describe("Creating from a template", func() {
+		var outputPath string
 
-	// Process the template and store the output in temporary file
-	listOutput, err := oc.Run("process").Args("-f", templatePath).Output()
-	if err != nil {
-		t.Fatalf("Unexpected error while processing %s: %v", templatePath, err)
-	}
+		It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
+			By(fmt.Sprintf("calling oc process -f %q", templatePath))
+			templateOutput, err := oc.Run("process").Args("-f", templatePath).Output()
+			if err != nil {
+				Failf("Couldn't process template %q: %v", templatePath, err)
+			}
 
-	listPath := filepath.Join(os.TempDir(), oc.Namespace()+".json")
-	defer os.Remove(listPath)
-	if err := ioutil.WriteFile(listPath, []byte(listOutput), 0644); err != nil {
-		t.Fatalf("Unexpected error while writing list file: %v", err)
-	}
+			By("writing output from process to a file")
+			outputPath = filepath.Join(os.TempDir(), oc.Namespace()+".json")
+			err = ioutil.WriteFile(outputPath, []byte(templateOutput), 0644)
+			if err != nil {
+				Failf("Couldn't write to %q: %v", outputPath, err)
+			}
 
-	if err := oc.Run("create").Args("-f", listPath).Execute(); err != nil {
-		t.Fatalf("Unexpected error while creating: %v", err)
-	}
+			By(fmt.Sprintf("calling oc create -f %q", outputPath))
+			if err := oc.Run("create").Args("-f", outputPath).Verbose().Execute(); err != nil {
+				Failf("Unable to create from list: %v", err)
+			}
 
-	endpointWatcher, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).
-		Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		t.Fatalf("Unable to create watcher for endpoints: %v", err)
-	}
-	defer endpointWatcher.Stop()
+			By("waiting for an mysql endpoint")
+			Expect(oc.Framework.WaitForAnEndpoint("mysql")).NotTo(HaveOccurred())
+		})
+	})
 
-	list, err := oc.AdminKubeRESTClient().Endpoints(oc.Namespace()).List(labels.Everything())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	for _, endpoint := range list.Items {
-		if err := exutil.WaitForEndpoint(endpoint.Name, endpointWatcher); err != nil {
-			t.Fatalf("Endpoint error: %v\n", err)
-		}
-	}
-}
+})
