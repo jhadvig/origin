@@ -1,9 +1,13 @@
 #!/bin/bash
+#
+# This scripts starts the OpenShift server with a default configuration.
+# The OpenShift Docker registry and router are installed.
+# It will start all 'default_*_test.go' test cases.
 
 set -o nounset
 set -o pipefail
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 
 source ${OS_ROOT}/hack/util.sh
 source ${OS_ROOT}/hack/common.sh
@@ -208,4 +212,4 @@ echo "[INFO] Starting extended tests ..."
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
 echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
 
-MASTER_ADDR="${MASTER_ADDR}" SERVER_CONFIG_DIR="${SERVER_CONFIG_DIR}" GOPATH="$(godep path):/data" go test -v ./test/extended
+MASTER_ADDR="${MASTER_ADDR}" SERVER_CONFIG_DIR="${SERVER_CONFIG_DIR}" GOPATH="$(godep path):/${GOPATH}" go test -v -tags=default ./test/extended
