@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -19,40 +18,49 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var adminConfigPath = filepath.Join(GetServerConfigDir(), "master", "admin.kubeconfig")
-
 type CLI struct {
-	namespace         string
-	verb              string
-	globalArgs        []string
-	commandArgs       []string
-	finalArgs         []string
-	stdout            io.Writer
-	verbose           bool
-	cmd               *cobra.Command
-	adminClient       *client.Client
-	adminKubeClient   *kclient.Client
-	adminClientConfig *kclient.Config
-	Framework         *Framework
+	namespace       string
+	verb            string
+	adminConfigPath string
+	globalArgs      []string
+	commandArgs     []string
+	finalArgs       []string
+	stdout          io.Writer
+	verbose         bool
+	cmd             *cobra.Command
+	Framework       *Framework
 }
 
 // NewCLI initialize the Kubernetes E2E framework, sets namespaces and provide
 // project role bindings.
-// This function must be called only from inside Describe() or Context() as it
-// setups BeforeEach() hook.
-func NewCLI(project string) *CLI {
+// If runInGinko argument is set to true, this function will install BeforeEach
+// hook to Gingo test case that grant project role bindings to a namespace created
+// by the E2E test. This option must be set inside Describe() or Context()
+func NewCLI(project, configPath string, runInGinko bool) *CLI {
 	client := &CLI{}
 	client.Framework = NewFramework(project)
-	client.SetupClients()
-	BeforeEach(func() {
-		if ns := client.Framework.Namespace; ns != nil {
-			Logf("Adding project role bindings to %q namespace", ns.Name)
-			client.SetupProject(ns.Name).SetNamespaceFromFramework()
-		} else {
-			Failf("Framework does not have the namespace set")
-		}
-	})
+	client.SetAdminKubeConfigPath(configPath)
+	if runInGinko {
+		func() { BeforeEach(client.beforeEach) }()
+	}
 	return client
+}
+
+func (c *CLI) beforeEach() {
+	if ns := c.Framework.Namespace; ns != nil {
+		Logf("Adding project role bindings to %q namespace", ns.Name)
+		c.SetupProject(ns.Name).SetNamespaceFromFramework()
+	} else {
+		Failf("Framework does not have the namespace set")
+	}
+}
+
+// SetAdminKubeConfigPath allows to override the path to admin kubeconfig file.
+func (c *CLI) SetAdminKubeConfigPath(path string) {
+	if len(path) == 0 {
+		FatalErr(fmt.Errorf("The admin.kubeconfig path can not be empty"))
+	}
+	c.adminConfigPath = path
 }
 
 // SetupProject setups a project role binding for the Kubernetes namespace
@@ -66,7 +74,7 @@ func (c *CLI) SetupProject(ns string) *CLI {
 			Groups:              binding.Groups.List(),
 		}
 		if err := addRole.AddRole(); err != nil {
-			Failf("Unable to add role binding %+v to namespace %q", addRole, ns)
+			Failf("Unable to add role binding %+v to namespace %q: %v", addRole, ns, err)
 		}
 	}
 	return c
@@ -79,24 +87,6 @@ func (c *CLI) SetNamespaceFromFramework() {
 	return
 }
 
-// SetupClients setups OpenShift and Kubernetes REST clients
-func (c *CLI) SetupClients() *CLI {
-	var err error
-
-	if c.adminClient, err = testutil.GetClusterAdminClient(adminConfigPath); err != nil {
-		FatalErr(err)
-	}
-
-	if c.adminKubeClient, err = testutil.GetClusterAdminKubeClient(adminConfigPath); err != nil {
-		FatalErr(err)
-	}
-
-	if c.adminClientConfig, err = testutil.GetClusterAdminClientConfig(adminConfigPath); err != nil {
-		FatalErr(err)
-	}
-	return c
-}
-
 // Verbose turns on verbose messages
 func (c *CLI) Verbose() *CLI {
 	c.verbose = true
@@ -105,12 +95,25 @@ func (c *CLI) Verbose() *CLI {
 
 // AdminRESTClient return the current project namespace REST client
 func (c *CLI) AdminRESTClient() *client.Client {
-	return c.adminClient
+	if client, err := testutil.GetClusterAdminClient(c.adminConfigPath); err != nil {
+		FatalErr(err)
+		return nil
+	} else {
+		return client
+	}
 }
 
 // AdminKubeRESTClient returns the current project namespace Kubernetes client
 func (c *CLI) AdminKubeRESTClient() *kclient.Client {
-	return c.adminKubeClient
+	if c.Framework.Client != nil {
+		return c.Framework.Client
+	}
+	if client, err := testutil.GetClusterAdminKubeClient(c.adminConfigPath); err != nil {
+		FatalErr(err)
+		return nil
+	} else {
+		return client
+	}
 }
 
 // Namespace returns the current project namespace
@@ -137,16 +140,13 @@ func (c *CLI) Run(verb string) *CLI {
 		FatalErr(fmt.Errorf("You must setup project first before running a command."))
 	}
 	nc := &CLI{
-		namespace:         c.namespace,
-		adminClient:       c.adminClient,
-		adminClientConfig: c.adminClientConfig,
-		adminKubeClient:   c.adminKubeClient,
-		verb:              verb,
-		cmd:               cli.NewCommandCLI("oc", "openshift", out),
+		namespace: c.namespace,
+		verb:      verb,
+		cmd:       cli.NewCommandCLI("oc", "openshift", out),
 		globalArgs: []string{
 			verb,
 			fmt.Sprintf("--namespace=%s", c.namespace),
-			fmt.Sprintf("--config=%s", adminConfigPath),
+			fmt.Sprintf("--config=%s", c.adminConfigPath),
 		},
 	}
 	return nc.SetOutput(out)
@@ -197,4 +197,10 @@ func (c *CLI) Execute() error {
 	}
 	os.Stdout.Sync()
 	return err
+}
+
+// FatalErr exits the test in case a fatal error has occured.
+func FatalErr(msg interface{}) {
+	fmt.Printf("ERROR: %v\n", msg)
+	os.Exit(1)
 }
