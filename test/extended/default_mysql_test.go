@@ -5,7 +5,6 @@ package extended
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
@@ -19,7 +18,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 	defer GinkgoRecover()
 
 	var templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
-	var oc = exutil.NewCLI("mysql-create")
+	var oc = exutil.NewCLI("mysql-create", adminKubeConfigPath(), true)
 
 	Describe("Creating from a template", func() {
 		var outputPath string
@@ -31,8 +30,8 @@ var _ = Describe("MySQL ephemeral template", func() {
 				Failf("Couldn't process template %q: %v", templatePath, err)
 			}
 
-			By("writing output from process to a file")
-			outputPath = filepath.Join(os.TempDir(), oc.Namespace()+".json")
+			outputPath = tempJSON(oc.Namespace())
+			By(fmt.Sprintf("by writing the output to %q", outputPath))
 			err = ioutil.WriteFile(outputPath, []byte(templateOutput), 0644)
 			if err != nil {
 				Failf("Couldn't write to %q: %v", outputPath, err)
@@ -43,7 +42,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 				Failf("Unable to create from list: %v", err)
 			}
 
-			By("waiting for an mysql endpoint")
+			By("expecting the mysql service get endpoints")
 			Expect(oc.Framework.WaitForAnEndpoint("mysql")).NotTo(HaveOccurred())
 		})
 	})
