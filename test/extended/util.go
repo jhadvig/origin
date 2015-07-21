@@ -1,6 +1,7 @@
 package extended
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -23,6 +24,7 @@ func kubeCertPath() string {
 	return filepath.Join(os.Getenv("SERVER_CONFIG_DIR"), "master")
 }
 
-func tempJSON(name string) string {
-	return filepath.Join(testContext.OutputDir, name+".json")
+func writeTempJSON(name, content string) (string, error) {
+	p := filepath.Join(testContext.OutputDir, name+".json")
+	return p, ioutil.WriteFile(p, []byte(content), 0644)
 }
