@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
 	. "github.com/onsi/ginkgo"
@@ -18,8 +19,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
+// REST clients.
 type CLI struct {
-	namespace       string
 	verb            string
 	adminConfigPath string
 	globalArgs      []string
@@ -28,66 +30,73 @@ type CLI struct {
 	stdout          io.Writer
 	verbose         bool
 	cmd             *cobra.Command
-	Framework       *Framework
+	kubeFramework   *Framework
 }
 
-// NewCLI initialize the Kubernetes E2E framework, sets namespaces and provide
-// project role bindings.
+// NewCLI initialize the Kubernetes E2E framework, project role bindings.
 // If runInGinko argument is set to true, this function will install BeforeEach
 // hook to Gingo test case that grant project role bindings to a namespace created
 // by the E2E test. This option must be set inside Describe() or Context()
 func NewCLI(project, configPath string, runInGinko bool) *CLI {
 	client := &CLI{}
-	client.Framework = NewFramework(project)
-	client.SetAdminKubeConfigPath(configPath)
+	client.kubeFramework = NewFramework(project)
+	if len(configPath) == 0 {
+		FatalErr(fmt.Errorf("The configPath can't be empty"))
+	}
+	client.adminConfigPath = configPath
 	if runInGinko {
 		func() { BeforeEach(client.beforeEach) }()
+	} else {
+		client.SetNamespace(project)
 	}
 	return client
 }
 
+// OsFramework returns OpenShift framework
+func (c *CLI) OsFramework() *OsFramework {
+	return NewOsFramework(c.kubeFramework.Namespace, c.AdminRESTClient())
+}
+
+// KubeFramework returns Kubernetes framework
+func (c *CLI) KubeFramework() *Framework {
+	return c.kubeFramework
+}
+
+// SetNamespace overrides the namespace set by framework
+func (c *CLI) SetNamespace(ns string) {
+	if c.kubeFramework == nil {
+		FatalErr(fmt.Errorf("The E2E framework must be initialized"))
+	}
+	c.kubeFramework.Namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}}
+}
+
 func (c *CLI) beforeEach() {
-	if ns := c.Framework.Namespace; ns != nil {
-		Logf("Adding project role bindings to %q namespace", ns.Name)
-		c.SetupProject(ns.Name).SetNamespaceFromFramework()
+	if len(c.Namespace()) > 0 {
+		Logf("Adding project role bindings to %q namespace", c.Namespace())
+		c.SetupRoleBindings()
 	} else {
 		Failf("Framework does not have the namespace set")
 	}
 }
 
-// SetAdminKubeConfigPath allows to override the path to admin kubeconfig file.
-func (c *CLI) SetAdminKubeConfigPath(path string) {
-	if len(path) == 0 {
-		FatalErr(fmt.Errorf("The admin.kubeconfig path can not be empty"))
-	}
-	c.adminConfigPath = path
-}
-
-// SetupProject setups a project role binding for the Kubernetes namespace
-func (c *CLI) SetupProject(ns string) *CLI {
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns) {
+// SetupRoleBindings setups a project role binding for the current namespace
+func (c *CLI) SetupRoleBindings() *CLI {
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(c.Namespace()) {
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns, c.AdminRESTClient()),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(c.Namespace(), c.AdminRESTClient()),
 			Users:               binding.Users.List(),
 			Groups:              binding.Groups.List(),
 		}
 		if err := addRole.AddRole(); err != nil {
-			Failf("Unable to add role binding %+v to namespace %q: %v", addRole, ns, err)
+			Failf("Unable to add role binding %+v to namespace %q: %v", addRole, c.Namespace(), err)
 		}
 	}
 	return c
 }
 
-// SetNamespaceFromFramework sets the current namespace to Kubernetes E2E Framework
-// namespace.
-func (c *CLI) SetNamespaceFromFramework() {
-	c.namespace = c.Framework.Namespace.Name
-	return
-}
-
-// Verbose turns on verbose messages
+// Verbose turns on verbose messages for current command
 func (c *CLI) Verbose() *CLI {
 	c.verbose = true
 	return c
@@ -95,30 +104,36 @@ func (c *CLI) Verbose() *CLI {
 
 // AdminRESTClient return the current project namespace REST client
 func (c *CLI) AdminRESTClient() *client.Client {
-	if client, err := testutil.GetClusterAdminClient(c.adminConfigPath); err != nil {
+	client, err := testutil.GetClusterAdminClient(c.adminConfigPath)
+	if err != nil {
 		FatalErr(err)
 		return nil
-	} else {
-		return client
 	}
+	return client
 }
 
 // AdminKubeRESTClient returns the current project namespace Kubernetes client
 func (c *CLI) AdminKubeRESTClient() *kclient.Client {
-	if c.Framework.Client != nil {
-		return c.Framework.Client
+	if c.kubeFramework.Client != nil {
+		return c.kubeFramework.Client
 	}
-	if client, err := testutil.GetClusterAdminKubeClient(c.adminConfigPath); err != nil {
+	client, err := testutil.GetClusterAdminKubeClient(c.adminConfigPath)
+	if err != nil {
 		FatalErr(err)
 		return nil
-	} else {
-		return client
 	}
+	return client
 }
 
-// Namespace returns the current project namespace
+// Namespace returns the name of the namespace used in the current test case
 func (c *CLI) Namespace() string {
-	return c.namespace
+	if c.kubeFramework == nil {
+		return ""
+	}
+	if c.kubeFramework.Namespace == nil {
+		return ""
+	}
+	return c.kubeFramework.Namespace.Name
 }
 
 // SetOutput sets the default output for the command
@@ -136,16 +151,16 @@ func (c *CLI) SetOutput(out io.Writer) *CLI {
 // to a buffer and prepare the global flags such as namespace and config path.
 func (c *CLI) Run(verb string) *CLI {
 	out := new(bytes.Buffer)
-	if len(c.namespace) == 0 {
-		FatalErr(fmt.Errorf("You must setup project first before running a command."))
+	if len(c.Namespace()) == 0 {
+		FatalErr(fmt.Errorf("You must set the namespace before running a command."))
 	}
 	nc := &CLI{
-		namespace: c.namespace,
-		verb:      verb,
-		cmd:       cli.NewCommandCLI("oc", "openshift", out),
+		verb:          verb,
+		kubeFramework: c.KubeFramework(),
+		cmd:           cli.NewCommandCLI("oc", "openshift", out),
 		globalArgs: []string{
 			verb,
-			fmt.Sprintf("--namespace=%s", c.namespace),
+			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.adminConfigPath),
 		},
 	}

@@ -4,7 +4,6 @@ package extended
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 
 	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
@@ -30,9 +29,8 @@ var _ = Describe("MySQL ephemeral template", func() {
 				Failf("Couldn't process template %q: %v", templatePath, err)
 			}
 
-			outputPath = tempJSON(oc.Namespace())
 			By(fmt.Sprintf("by writing the output to %q", outputPath))
-			err = ioutil.WriteFile(outputPath, []byte(templateOutput), 0644)
+			outputPath, err := writeTempJSON(oc.Namespace(), templateOutput)
 			if err != nil {
 				Failf("Couldn't write to %q: %v", outputPath, err)
 			}
@@ -43,7 +41,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 			}
 
 			By("expecting the mysql service get endpoints")
-			Expect(oc.Framework.WaitForAnEndpoint("mysql")).NotTo(HaveOccurred())
+			Expect(oc.KubeFramework().WaitForAnEndpoint("mysql")).NotTo(HaveOccurred())
 		})
 	})
 
