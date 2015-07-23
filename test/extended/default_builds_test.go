@@ -1,94 +1,56 @@
-// +build disabled
+// +build default
 
 package extended
 
 import (
+	"fmt"
 	"path/filepath"
-	"strings"
-	"testing"
+	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func init() {
-	exutil.RequireServerVars()
-}
+var _ = Describe("STI environment Build", func() {
+	defer GinkgoRecover()
 
-var (
-	imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")
-	stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
-	stiEnvPodFixture   = filepath.Join("fixtures", "test-env-pod.json")
-)
+	var imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")
+	var stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
+	// var stiEnvPodFixture   = filepath.Join("fixtures", "test-env-pod.json")
+	var oc = exutil.NewCLI("mysql-create", adminKubeConfigPath(), true)
 
-// TestSTIEnvironmentBuild exercises the scenario where you have .sti/environment
-// file in your source code repository and you use STI build strategy. In that
-// case the STI build should read that file and set all environment variables
-// from that file to output image.
-func TestSTIEnvironmentBuild(t *testing.T) {
-	oc := exutil.NewCLI("build-sti-env").Verbose()
+	// var kc = oc.AdminKubeRESTClient()
 
-	// Create imageStream used in this test
-	if err := oc.Run("create").Args("-f", imageStreamFixture).Execute(); err != nil {
-		t.Fatalf("Error creating imageStream: %v", err)
-	}
-	defer oc.Run("delete").Args("imageStream", "test").Execute()
-
-	// Create watcher to watch the build
-	buildWatcher, err := oc.AdminRESTClient().Builds(oc.Namespace()).
-		Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		t.Fatalf("Unable to create watcher for builds: %v", err)
-	}
-	defer buildWatcher.Stop()
-
-	// Create buildConfig and start the build manually
-	if err := oc.Run("create").Args("-f", stiEnvBuildFixture).Execute(); err != nil {
-		t.Fatalf("Error creating build: %v", err)
-	}
-	defer oc.Run("delete").Args("buildConfig", "test").Execute()
-
-	buildName, err := oc.Run("start-build").Args("test").Verbose().Output()
-	if err != nil {
-		t.Fatalf("Unable to start build: %v", err)
+	if _, err := os.Stat(imageStreamFixture); os.IsNotExist(err) {
+	    fmt.Printf("no such file or directory: %s", imageStreamFixture)
+	    return
 	}
 
-	if err := exutil.WaitForBuildComplete(buildName, buildWatcher); err != nil {
-		logs, _ := oc.Run("build-logs").Args(buildName, "--nowait").Output()
-		t.Fatalf("Build error: %v\n%s\n", err, logs)
-	}
+	Describe("Creating from a build", func(){
 
-	// Verification:
+		It(fmt.Sprintf("should create image-streams from %q template", imageStreamFixture), func(){
 
-	podWatcher, err := oc.AdminKubeRESTClient().Pods(oc.Namespace()).
-		Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		t.Fatalf("Unable to create watcher for pods: %v", err)
-	}
-	defer podWatcher.Stop()
+			By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
+			if err := oc.Run("create").Args("-f", imageStreamFixture).Verbose().Execute(); err != nil {
+				Failf("Could not create image-streams %q: %v", imageStreamFixture, err)
+			}
 
-	// Run the pod with the built image and verify it's content
-	podName, err := exutil.CreatePodForImageStream(oc, "test")
-	if err != nil {
-		t.Fatalf("Unable to create pod for verification: %v", err)
-	}
-	defer oc.Run("delete").Args("pod", podName).Execute()
+			By(fmt.Sprintf("calling oc create -f %q", stiEnvBuildFixture))
+			if err := oc.Run("create").Args("-f", stiEnvBuildFixture).Verbose().Execute(); err != nil {
+				Failf("Could not create build %q: %v", stiEnvBuildFixture, err)
+			}
 
-	if err := exutil.WaitForPodRunning(podName, podWatcher); err != nil {
-		logs, _ := oc.Run("logs").Args("-p", podName).Output()
-		t.Fatalf("Pod error: %v\n%s\n", err, logs)
-	}
+			By("starting a test build")
+			buildName, err := oc.Run("start-build").Args("test").Output()
+			if err != nil {
+				Failf("Unable to start build: %v", err)
+			}
 
-	result, err := oc.Run("exec").
-		Args(podName, "--", "curl", "http://localhost:8080").
-		Verbose().
-		Output()
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if !strings.Contains(result, "success") {
-		t.Errorf("Expected TEST_ENV contains 'success', got: %q", result)
-	}
-}
+			By("expecting the build is in Complete phase")
+			Expect(oc.OsFramework().WaitForABuild(buildName)).NotTo(HaveOccurred())
+		})
+	})
+})
