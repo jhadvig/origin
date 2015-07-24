@@ -5,7 +5,7 @@ package extended
 import (
 	"fmt"
 	"path/filepath"
-	"os"
+	"encoding/json"
 
 	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
 	. "github.com/onsi/ginkgo"
@@ -19,19 +19,12 @@ var _ = Describe("STI environment Build", func() {
 
 	var imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")
 	var stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
-	// var stiEnvPodFixture   = filepath.Join("fixtures", "test-env-pod.json")
-	var oc = exutil.NewCLI("mysql-create", adminKubeConfigPath(), true)
+	var oc = exutil.NewCLI("build-sti-env", adminKubeConfigPath(), true)
 
-	// var kc = oc.AdminKubeRESTClient()
+	Describe("Building from template", func(){
+		var outputPath string
 
-	if _, err := os.Stat(imageStreamFixture); os.IsNotExist(err) {
-	    fmt.Printf("no such file or directory: %s", imageStreamFixture)
-	    return
-	}
-
-	Describe("Creating from a build", func(){
-
-		It(fmt.Sprintf("should create image-streams from %q template", imageStreamFixture), func(){
+		It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func(){
 
 			By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 			if err := oc.Run("create").Args("-f", imageStreamFixture).Verbose().Execute(); err != nil {
@@ -51,6 +44,27 @@ var _ = Describe("STI environment Build", func() {
 
 			By("expecting the build is in Complete phase")
 			Expect(oc.OsFramework().WaitForABuild(buildName)).NotTo(HaveOccurred())
+
+			By("creating and writing pod object")
+			pod, err := oc.OsFramework().CreatePodObjectForImageStream("test")
+			if err != nil {
+				Failf("Unable to create and write pod spec: %v", err)
+			}
+
+			By(fmt.Sprintf("writing the pod object to %q", outputPath))
+			podJSON, err := json.Marshal(pod)
+			outputPath, err := writeTempJSON(oc.Namespace(), string(podJSON))
+			if err != nil {
+				Failf("Couldn't write to %q: %v", outputPath, err)
+			}
+
+			By(fmt.Sprintf("calling oc create -f %q", outputPath))
+			if err := oc.Run("create").Args("-f", outputPath).Verbose().Execute(); err != nil {
+				Failf("Unable to create pod: %v", err)
+			}
+
+			By("expecting the pod to be running")
+			Expect(oc.KubeFramework().WaitForPodRunning(pod.Name)).NotTo(HaveOccurred())
 		})
 	})
 })

@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -78,23 +77,25 @@ func (f *OsFramework) WaitForABuild(buildName string) error {
 	}
 }
 
-// CreatePodForImageStream ...
-func (f *OsFramework) CreatePodForImageStream(imageStreamName string, kclient *kclient.Client) (*kapi.Pod, error) {
-
+// CreatePodObjectForImageStream creates a pod object from given imageStream
+func (f *OsFramework) CreatePodObjectForImageStream(imageStreamName string) (*kapi.Pod, error) {
 	imageStream, err := f.Client.ImageStreams(f.Namespace.Name).Get(imageStreamName)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	tags := []string{}
 	for tag := range imageStream.Status.Tags {
 		tags = append(tags, tag)
 	}
-	imageFullName := imageStream.Status.Tags[tags[0]].Items[0].Image
 
+	imageName := imageStream.Status.Tags[tags[0]].Items[0].DockerImageReference
 	podName := "test-pod" + string(kutil.NewUUID())
-
-	podSpec := &kapi.Pod{
+	pod := &kapi.Pod{
+		TypeMeta: kapi.TypeMeta{
+			Kind: "Pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   podName,
 			Labels: map[string]string{"name": podName},
@@ -104,15 +105,11 @@ func (f *OsFramework) CreatePodForImageStream(imageStreamName string, kclient *k
 			Containers: []kapi.Container{
 				{
 					Name:  "test",
-					Image: imageFullName,
+					Image: imageName,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
-	}
-	pod, err := kclient.Pods(f.Namespace.Name).Create(podSpec)
-	if err != nil {
-		return nil, err
 	}
 	return pod, nil
 }
