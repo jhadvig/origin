@@ -17,6 +17,9 @@ echo "[INFO] Starting extended tests"
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
+TMPDIR="${TMPDIR:-"/tmp"}"
+BASETMPDIR="${TMPDIR}/openshift-extended-tests"
+
 # Use either the latest release built images, or latest.
 if [[ -z "${USE_IMAGES-}" ]]; then
 	USE_IMAGES='openshift/origin-${component}:latest'
@@ -28,14 +31,7 @@ fi
 
 
 if [[ -z "${BASETMPDIR-}" ]]; then
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	BASETMPDIR="${TMPDIR}/openshift-extended-tests"
-	sudo rm -rf "${BASETMPDIR}" && mkdir -p ${BASETMPDIR}
-  if [[ $? != 0 ]]; then
-    echo "[INFO] Unmounting volumes ..."
-    findmnt -lo TARGET | grep openshift-extended-tests | xargs -r sudo umount
-    rm -rf ${BASETMPDIR} && mkdir -p ${BASETMPDIR}
-  fi
+	remove_tmp_dir && mkdir -p "${BASETMPDIR}"
 fi
 
 OS_TEST_NAMESPACE="extended-tests"
@@ -97,7 +93,17 @@ cleanup() {
 		rm -rf ${BASETMPDIR}
 	fi
 
+	remove_tmp_dir
     echo "[INFO] Cleanup complete"
+}
+
+remove_tmp_dir() {
+	rm -rf ${BASETMPDIR} &>/dev/null
+	if [[ $? != 0 ]]; then
+		echo "[INFO] Unmounting volumes ..."
+		findmnt -lo TARGET | grep openshift-extended-tests | xargs -r sudo umount
+		rm -rf ${BASETMPDIR}
+	fi
 }
 
 trap "exit" INT TERM
@@ -122,7 +128,7 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
 	--overwrite=false \
 	--cert-dir="${MASTER_CONFIG_DIR}" \
 	--hostnames="${SERVER_HOSTNAME_LIST}" \

@@ -1,4 +1,4 @@
-// +build default
+// +build disabled
 
 package extended
 
@@ -29,7 +29,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 				Failf("Couldn't process template %q: %v", templatePath, err)
 			}
 
-			By(fmt.Sprintf("writing the output to %q", outputPath))
+			By(fmt.Sprintf("by writing the output to %q", outputPath))
 			outputPath, err := writeTempJSON(oc.Namespace(), templateOutput)
 			if err != nil {
 				Failf("Couldn't write to %q: %v", outputPath, err)
