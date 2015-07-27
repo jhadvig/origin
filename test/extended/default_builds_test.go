@@ -21,10 +21,10 @@ var _ = Describe("STI environment Build", func() {
 	var stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
 	var oc = exutil.NewCLI("build-sti-env", adminKubeConfigPath(), true)
 
-	Describe("Creating from a build", func(){
+	Describe("Building from template", func(){
 		var outputPath string
 
-		It(fmt.Sprintf("should create a running pod from %q template", stiEnvBuildFixture), func(){
+		It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func(){
 
 			By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 			if err := oc.Run("create").Args("-f", imageStreamFixture).Verbose().Execute(); err != nil {

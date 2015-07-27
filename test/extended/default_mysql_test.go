@@ -1,4 +1,4 @@
-// +build disabled
+// +build default
 
 package extended
 
