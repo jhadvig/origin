@@ -199,7 +199,11 @@ func (c *CLI) Output() (string, error) {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
 	err := c.cmd.Execute()
+	if err != nil {
+		FatalErr(err)
+	}
 	out := c.stdout.(*bytes.Buffer)
+
 	return strings.TrimSpace(out.String()), err
 }
 

@@ -54,7 +54,6 @@ You can easily switch between multiple projects using '%[1]s project <projectnam
 
 func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 	in := os.Stdin
-	out := os.Stdout
 	errout := os.Stderr
 
 	// Main command

@@ -24,7 +24,10 @@ func kubeCertPath() string {
 	return filepath.Join(os.Getenv("SERVER_CONFIG_DIR"), "master")
 }
 
-func writeTempJSON(name, content string) (string, error) {
-	p := filepath.Join(testContext.OutputDir, name+".json")
-	return p, ioutil.WriteFile(p, []byte(content), 0644)
+func writeTempJSON(path, content string) (error) {
+	return ioutil.WriteFile(path, []byte(content), 0644)
+}
+
+func getTempFilePath(name string) string {
+	return filepath.Join(testContext.OutputDir, name+".json")
 }

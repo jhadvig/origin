@@ -40,7 +40,7 @@ func init() {
 	flag.StringVar(&testContext.CertDir, "cert-dir", kubeCertPath(), "Path to the directory containing the certs. Default is empty, which doesn't use certs.")
 	flag.StringVar(&testContext.KubeContext, clientcmd.FlagContext, "", "kubeconfig context to use/override. If unset, will use value from 'current-context'")
 	flag.StringVar(&testContext.Host, "host", os.Getenv("MASTER_ADDR"), "The host, or apiserver, to connect to")
-	flag.StringVar(&testContext.OutputDir, "e2e-output-dir", os.TempDir(), "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
+	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", os.TempDir(), "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration
 	SetTestContext(testContext)

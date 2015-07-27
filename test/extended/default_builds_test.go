@@ -22,9 +22,9 @@ var _ = Describe("STI environment Build", func() {
 	var oc = exutil.NewCLI("build-sti-env", adminKubeConfigPath(), true)
 
 	Describe("Building from template", func(){
-		var outputPath string
 
 		It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func(){
+			outputPath := getTempFilePath(oc.Namespace())
 
 			By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 			if err := oc.Run("create").Args("-f", imageStreamFixture).Verbose().Execute(); err != nil {
@@ -53,7 +53,7 @@ var _ = Describe("STI environment Build", func() {
 
 			By(fmt.Sprintf("writing the pod object to %q", outputPath))
 			podJSON, err := json.Marshal(pod)
-			outputPath, err := writeTempJSON(oc.Namespace(), string(podJSON))
+			err = writeTempJSON(outputPath, string(podJSON))
 			if err != nil {
 				Failf("Couldn't write to %q: %v", outputPath, err)
 			}

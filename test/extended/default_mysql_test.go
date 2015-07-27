@@ -20,9 +20,10 @@ var _ = Describe("MySQL ephemeral template", func() {
 	var oc = exutil.NewCLI("mysql-create", adminKubeConfigPath(), true)
 
 	Describe("Creating from a template", func() {
-		var outputPath string
 
 		It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
+			outputPath := getTempFilePath(oc.Namespace())
+
 			By(fmt.Sprintf("calling oc process -f %q", templatePath))
 			templateOutput, err := oc.Run("process").Args("-f", templatePath).Output()
 			if err != nil {
@@ -30,7 +31,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 			}
 
 			By(fmt.Sprintf("by writing the output to %q", outputPath))
-			outputPath, err := writeTempJSON(oc.Namespace(), templateOutput)
+			err = writeTempJSON(outputPath, templateOutput)
 			if err != nil {
 				Failf("Couldn't write to %q: %v", outputPath, err)
 			}
