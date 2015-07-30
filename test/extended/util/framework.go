@@ -78,19 +78,15 @@ func (f *OsFramework) WaitForABuild(buildName string) error {
 	}
 }
 
-// CreatePodForImageStream creates a pod object from given imageStream
-func (f *OsFramework) CreatePodForImageStream(imageStreamName string) (*kapi.Pod, error) {
+// CreatePodForImageStreamTag creates a pod object from given imageStream and the tag
+func (f *OsFramework) CreatePodForImageStreamTag(imageStreamName, tag string) (*kapi.Pod, error) {
 	imageStream, err := f.Client.ImageStreams(f.Namespace.Name).Get(imageStreamName)
 	if err != nil {
 		return nil, err
 	}
 
-	tags := []string{}
-	for tag := range imageStream.Status.Tags {
-		tags = append(tags, tag)
-	}
 
-	imageName := imageStream.Status.Tags[tags[0]].Items[0].DockerImageReference
+	imageName := imageStream.Status.Tags[tag].Items[0].DockerImageReference
 	podName := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{
 		TypeMeta: kapi.TypeMeta{
