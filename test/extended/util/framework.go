@@ -85,7 +85,6 @@ func (f *OsFramework) CreatePodForImageStreamTag(imageStreamName, tag string) (*
 		return nil, err
 	}
 
-
 	imageName := imageStream.Status.Tags[tag].Items[0].DockerImageReference
 	podName := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{

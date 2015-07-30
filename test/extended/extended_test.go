@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -34,10 +35,13 @@ func init() {
 	// Randomize specs as well as suites
 	config.GinkgoConfig.RandomizeAllSpecs = false
 
+	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
+	os.MkdirAll(extendedOutputDir, 0600)
+
 	flag.StringVar(&testContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, kubeConfigPath(), "Path to kubeconfig containing embeded authinfo.")
 	flag.StringVar(&testContext.KubeContext, clientcmd.FlagContext, "", "kubeconfig context to use/override. If unset, will use value from 'current-context'")
 	flag.StringVar(&testContext.Host, "host", os.Getenv("MASTER_ADDR"), "The host, or apiserver, to connect to")
-	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", os.TempDir(), "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
+	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration
 	SetTestContext(testContext)
