@@ -10,11 +10,8 @@ import (
 
 var testContext = e2e.TestContextType{}
 
-func adminKubeConfigPath() string {
-	if kubeConfigPath := os.Getenv("SERVER_KUBECONFIG_PATH"); len(kubeConfigPath) != 0 {
-		return filepath.Join(os.Getenv("SERVER_CONFIG_DIR"), kubeConfigPath)
-	}
-	return filepath.Join(os.Getenv("SERVER_CONFIG_DIR"), "master", "admin.kubeconfig")
+func kubeConfigPath() string {
+	return os.Getenv("KUBECONFIG")
 }
 
 func writeTempJSON(path, content string) error {

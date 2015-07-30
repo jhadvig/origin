@@ -20,7 +20,7 @@ var _ = Describe("STI build with .sti/environment file", func() {
 
 	var imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")
 	var stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
-	var oc = exutil.NewGinkoCLI("build-sti-env", adminKubeConfigPath())
+	var oc = exutil.NewGinkoCLI("build-sti-env", kubeConfigPath())
 
 	Describe("Building from a template", func() {
 

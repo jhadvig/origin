@@ -17,7 +17,7 @@ var _ = Describe("MySQL ephemeral template", func() {
 	defer GinkgoRecover()
 
 	var templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
-	var oc = exutil.NewGinkoCLI("mysql-create", adminKubeConfigPath())
+	var oc = exutil.NewGinkoCLI("mysql-create", kubeConfigPath())
 
 	Describe("Creating from a template", func() {
 
