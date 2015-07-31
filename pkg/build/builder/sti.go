@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 	stidocker "github.com/openshift/source-to-image/pkg/docker"
+	"github.com/openshift/source-to-image/pkg/git"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
@@ -25,6 +26,7 @@ type STIBuilder struct {
 	dockerSocket string
 	authPresent  bool
 	auth         docker.AuthConfiguration
+	git          git.Git
 	build        *api.Build
 }
 
@@ -36,6 +38,7 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 		authPresent:  authPresent,
 		auth:         authCfg,
 		build:        build,
+		git:          git.New(),
 	}
 }
 
@@ -118,9 +121,11 @@ func (s *STIBuilder) Build() error {
 		setHttp = true
 	}
 
-	if _, err = builder.Build(config); err != nil {
+	if result, err = builder.Build(config); err != nil {
 		return err
 	}
+
+	// err = builder.Anotate(result.WorkingDir)
 
 	// reset http proxy env variables to original value
 	if setHttps {
@@ -154,4 +159,10 @@ func (s *STIBuilder) Build() error {
 		glog.Flush()
 	}
 	return nil
+}
+
+func (s *STIBuilder) Anotate(workDir string) error {
+	sourceInfo := s.git.GetInfo(workDir)
+	labels := getBuildLabes(sourceInfo)
+	return 
 }

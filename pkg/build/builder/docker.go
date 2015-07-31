@@ -209,7 +209,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
-// Also append the environment variables in the Dockerfile.
+// Also append the environment variables and labels in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
 	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
@@ -241,6 +241,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	envVars := getBuildEnvVars(d.build)
 	newFileData = appendEnvVars(newFileData, envVars)
 
+	sourceInfo := d.git.GetInfo(dir)
+	labels := getBuildLabels(sourceInfo)
+	newFileData = appendBuildLabels(newFileData, labels)
+
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
 	}
@@ -258,6 +262,24 @@ func appendEnvVars(fileData string, envVars map[string]string) string {
 	for k, v := range envVars {
 		if first {
 			fileData += fmt.Sprintf("ENV %s=\"%s\"", k, v)
+			first = false
+		} else {
+			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
+		}
+	}
+	fileData += "\n"
+	return fileData
+}
+
+//appendBuildLabels ...
+func appendBuildLabels(fileData string, envVars map[string]string) string {
+	if !strings.HasSuffix(fileData, "\n") {
+		fileData += "\n"
+	}
+	first := true
+	for k, v := range envVars {
+		if first {
+			fileData += fmt.Sprintf("LABEL %s=\"%s\"", k, v)
 			first = false
 		} else {
 			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)

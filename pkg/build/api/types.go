@@ -14,6 +14,8 @@ const (
 	DeprecatedBuildLabel = "build"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
+	//
+	DefaultBuildNamespace = "io.openshift.build"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as

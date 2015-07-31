@@ -22,6 +22,7 @@ const DockerCfgFile = ".dockercfg"
 
 type builder interface {
 	Build() error
+	// Anotate() error
 }
 
 type factoryFunc func(

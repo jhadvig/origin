@@ -2,6 +2,7 @@ package builder
 
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	stiapi "github.com/openshift/source-to-image/pkg/api"
 )
 
 // getBuildEnvVars returns a map with the environment variables that should be added
@@ -27,4 +28,31 @@ func getBuildEnvVars(build *buildapi.Build) map[string]string {
 		}
 	}
 	return envVars
+}
+
+// getBuildLabels ...
+func getBuildLabels(info *stiapi.SourceInfo) map[string]string {
+
+	labels := make(map[string]string)
+
+	if info.CommitID != "" {
+		labels["io.openshift.build.commit.id"] = info.CommitID
+	}
+	if info.Author != "" {
+		labels["io.openshift.build.commit.author"] = info.Author
+	}
+	if info.Date != "" {
+		labels["io.openshift.build.commit.date"] = info.Date
+	}
+	if info.Message != "" {
+		labels["io.openshift.build.commit.message"] = info.Message
+	}
+	if info.Ref != "" {
+		labels["io.openshift.build.commit.ref"] = info.Ref
+	}
+	if info.Location != "" {
+		labels["io.openshift.build.commit.location"] = info.Location
+	}
+
+	return labels
 }
