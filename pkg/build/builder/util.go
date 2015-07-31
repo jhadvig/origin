@@ -4,6 +4,11 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
+const (
+	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
+	DefaultDockerLabelNamespace = "io.openshift."
+)
+
 // getBuildEnvVars returns a map with the environment variables that should be added
 // to the built image
 func getBuildEnvVars(build *buildapi.Build) map[string]string {
