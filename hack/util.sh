@@ -5,6 +5,88 @@
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
+# configure_and_start_os will create and write OS master certificates, node config,
+# OS config and finally starts the OS server. Returns the PID of the OS server.
+# 
+# $1 - log dir
+function configure_and_start_os {
+  openshift admin ca create-master-certs \
+    --overwrite=false \
+    --cert-dir="${MASTER_CONFIG_DIR}" \
+    --hostnames="${SERVER_HOSTNAME_LIST}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
+
+  echo "[INFO] Creating OpenShift node config"
+  openshift admin create-node-config \
+    --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+    --node-dir="${NODE_CONFIG_DIR}" \
+    --node="${KUBELET_HOST}" \
+    --hostnames="${KUBELET_HOST}" \
+    --master="${MASTER_ADDR}" \
+    --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+    --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+
+  oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+  echo "[INFO] Creating OpenShift config"
+  openshift start \
+    --write-config=${SERVER_CONFIG_DIR} \
+    --create-certs=false \
+    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
+    --hostname="${KUBELET_HOST}" \
+    --volume-dir="${VOLUME_DIR}" \
+    --etcd-dir="${ETCD_DATA_DIR}" \
+    --images="${USE_IMAGES}"
+
+
+  echo "[INFO] Starting OpenShift server"
+  sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+    --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+    --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+    --loglevel=4 \
+    &> "${1}/openshift.log" &
+  echo $!
+}
+
+# wait_for_server waits until OS server endpoints are available
+function wait_for_server {
+  wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+}
+
+# test_privileges tests if the testing machine has iptables available
+# and in PATH. Also test whether current user has sudo privileges.  
+function test_privileges {
+  if [[ -z "$(which iptables)" ]]; then
+    echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
+    exit 1
+  fi
+  iptables --list > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    sudo iptables --list > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      echo "You do not have iptables or sudo privileges. Kubernetes services will not work without iptables access.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.  Try 'sudo hack/test-end-to-end.sh'."
+      exit 1
+    fi
+  fi
+}
+
+# test_godep tests if the godep is in PATH.
+function test_godep {
+  if [[ -z "$(which godep)" ]];then
+    echo "You do not have godep in your PATH. Extended tests require godep in order to start."
+    exit 1
+  fi
+}
+
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #

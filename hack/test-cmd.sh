@@ -107,46 +107,7 @@ echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
-
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
-  --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-  --loglevel=4 \
-  1>&2 2>"${TEMP_DIR}/openshift.log" &
-OS_PID=$!
+OS_PID=$(configure_and_start_os ${TEMP_DIR})
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
@@ -157,10 +118,7 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${FAKE_HOME_DIR}"
 
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+wait_for_server
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
