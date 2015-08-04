@@ -26,12 +26,15 @@ fi
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
-if [[ -z "${BASETMPDIR-}" ]]; then
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	BASETMPDIR="${TMPDIR}/openshift-e2e"
-	sudo rm -rf "${BASETMPDIR}"
-	mkdir -p "${BASETMPDIR}"
+
+TEST_TYPE="openshift-e2e"
+TMPDIR="${TMPDIR:-"/tmp"}"
+BASETMPDIR="${TMPDIR}/${TEST_TYPE}"
+
+if [[ -d "${BASETMPDIR}" ]]; then
+	remove_tmp_dir $TEST_TYPE && mkdir -p "${BASETMPDIR}"
 fi
+
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
 FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
@@ -186,7 +189,7 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-OS_PID=$(configure_and_start_os ${LOG_DIR})
+configure_os_server
 
 export HOME="${FAKE_HOME_DIR}"
 # This directory must exist so Docker can store credentials in $HOME/.dockercfg
@@ -205,7 +208,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
 
-wait_for_server
+start_os_server ${LOG_DIR}
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default

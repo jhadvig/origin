@@ -27,15 +27,6 @@ cleanup() {
     echo "[INFO] Cleanup complete"
 }
 
-remove_tmp_dir() {
-	rm -rf ${BASETMPDIR} >/dev/null
-	if [[ $? != 0 ]]; then
-		echo "[INFO] Unmounting volumes ..."
-		findmnt -lo TARGET | grep openshift-extended-tests | xargs -r sudo umount
-		rm -rf ${BASETMPDIR}
-	fi
-}
-
 test_privileges
 test_godep
 
@@ -44,8 +35,13 @@ echo "[INFO] Starting 'default' extended tests"
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
+TEST_TYPE="openshift-extended-tests"
 TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${TMPDIR}/openshift-extended-tests"
+BASETMPDIR="${TMPDIR}/${TEST_TYPE}"
+
+if [[ -d "${BASETMPDIR}" ]]; then
+	remove_tmp_dir $TEST_TYPE && mkdir -p "${BASETMPDIR}"
+fi
 
 # Use either the latest release built images, or latest.
 if [[ -z "${USE_IMAGES-}" ]]; then
@@ -54,11 +50,6 @@ if [[ -z "${USE_IMAGES-}" ]]; then
 		COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
 		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
 	fi
-fi
-
-
-if [[ -d "${BASETMPDIR}" ]]; then
-	remove_tmp_dir && mkdir -p "${BASETMPDIR}"
 fi
 
 OS_TEST_NAMESPACE="extended-tests"
@@ -120,7 +111,7 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-OS_PID=$(configure_and_start_os ${LOG_DIR})
+configure_os_server
 
 export HOME="${FAKE_HOME_DIR}"
 # This directory must exist so Docker can store credentials in $HOME/.dockercfg
@@ -139,7 +130,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	echo "[INFO] To debug: export ADMIN_KUBECONFIG=$ADMIN_KUBECONFIG"
 fi
 
-wait_for_server
+start_os_server ${LOG_DIR}
 
 # install the router
 echo "[INFO] Installing the router"

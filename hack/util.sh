@@ -6,10 +6,8 @@ TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
 # configure_and_start_os will create and write OS master certificates, node config,
-# OS config and finally starts the OS server. Returns the PID of the OS server.
-# 
-# $1 - log dir
-function configure_and_start_os {
+# OS config.
+function configure_os_server {
   openshift admin ca create-master-certs \
     --overwrite=false \
     --cert-dir="${MASTER_CONFIG_DIR}" \
@@ -43,7 +41,13 @@ function configure_and_start_os {
     --volume-dir="${VOLUME_DIR}" \
     --etcd-dir="${ETCD_DATA_DIR}" \
     --images="${USE_IMAGES}"
+}
 
+# start_os_server starts the OS server, exports the PID of the OS server
+# and waits until OS server endpoints are available
+#
+# $1 - log dir for OS server
+function start_os_server {
 
   echo "[INFO] Starting OpenShift server"
   sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
@@ -51,11 +55,8 @@ function configure_and_start_os {
     --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
     --loglevel=4 \
     &> "${1}/openshift.log" &
-  echo $!
-}
+  export OS_PID=$!
 
-# wait_for_server waits until OS server endpoints are available
-function wait_for_server {
   wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
   wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
   wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
@@ -317,6 +318,20 @@ function start_etcd {
   wait_for_url "http://${host}:${port}/version" "etcd: " 0.25 80
   curl -X PUT  "http://${host}:${port}/v2/keys/_test"
   echo
+}
+
+# remove_tmp_dir will try to delete the testing directory.
+# If it fails will unmount all the mounts associated with 
+# the test.
+# 
+# $1 expression for which the mounts should be checked 
+remove_tmp_dir() {
+  sudo rm -rf ${BASETMPDIR} &>/dev/null
+  if [[ $? != 0 ]]; then
+    echo "[INFO] Unmounting previously used volumes ..."
+    findmnt -lo TARGET | grep $1 | xargs -r sudo umount
+    sudo rm -rf ${BASETMPDIR}
+  fi
 }
 
 # stop_openshift_server utility function to terminate an

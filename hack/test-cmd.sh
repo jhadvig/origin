@@ -107,7 +107,7 @@ echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
-OS_PID=$(configure_and_start_os ${TEMP_DIR})
+configure_os_server
 
 if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
@@ -118,7 +118,7 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${FAKE_HOME_DIR}"
 
-wait_for_server
+start_os_server ${LOG_DIR}
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
