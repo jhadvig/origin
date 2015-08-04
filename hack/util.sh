@@ -5,6 +5,30 @@
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
+# setup_env_vars exports all the necessary environment variables for configuring and  
+# starting OS server.
+function setup_env_vars {
+  export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+  export VOLUME_DIR="${BASETMPDIR}/volumes"
+  export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
+  export DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
+  export API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
+  export API_PORT="${API_PORT:-8443}"
+  export API_SCHEME="${API_SCHEME:-https}"
+  export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
+  export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
+  export KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
+  export KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
+  export KUBELET_PORT="${KUBELET_PORT:-10250}"
+  export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+  export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+  export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
+
+  # set path so OpenShift is available
+  GO_OUT="${OS_ROOT}/_output/local/go/bin"
+  export PATH="${GO_OUT}:${PATH}"
+}
+
 # configure_and_start_os will create and write OS master certificates, node config,
 # OS config.
 function configure_os_server {
@@ -56,7 +80,6 @@ function start_os_server {
     --loglevel=4 \
     &> "${1}/openshift.log" &
   export OS_PID=$!
-
   wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
   wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
   wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80

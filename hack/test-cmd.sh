@@ -57,24 +57,14 @@ if [[ -z "${USE_IMAGES-}" ]]; then
   USE_IMAGES="openshift/origin-\${component}:${tag}"
 fi
 
+
+API_HOST=${API_HOST:-127.0.0.1}
+TEMP_DIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
+BASETMPDIR=$TEMP_DIR
+setup_env_vars
+
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-4001}
-API_SCHEME=${API_SCHEME:-https}
-API_PORT=${API_PORT:-8443}
-API_HOST=${API_HOST:-127.0.0.1}
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME=${KUBELET_SCHEME:-https}
-KUBELET_HOST=${KUBELET_HOST:-127.0.0.1}
-KUBELET_PORT=${KUBELET_PORT:-10250}
-
-TEMP_DIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
-ETCD_DATA_DIR="${TEMP_DIR}/etcd"
-VOLUME_DIR="${TEMP_DIR}/volumes"
-FAKE_HOME_DIR="${TEMP_DIR}/openshift.local.home"
-SERVER_CONFIG_DIR="${TEMP_DIR}/openshift.local.config"
-MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 CONFIG_DIR="${TEMP_DIR}/configs"
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${CONFIG_DIR}"
 
@@ -118,7 +108,7 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${FAKE_HOME_DIR}"
 
-start_os_server ${LOG_DIR}
+start_os_server ${TEMP_DIR}
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"

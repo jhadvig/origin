@@ -52,29 +52,12 @@ if [[ -z "${USE_IMAGES-}" ]]; then
 	fi
 fi
 
-OS_TEST_NAMESPACE="extended-tests"
-
-ETCD_DATA_DIR="${BASETMPDIR}/etcd"
-VOLUME_DIR="${BASETMPDIR}/volumes"
-FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
 mkdir -p $ARTIFACT_DIR
 
-DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
-API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
-API_PORT="${API_PORT:-8443}"
-API_SCHEME="${API_SCHEME:-https}"
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
-KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
-KUBELET_PORT="${KUBELET_PORT:-10250}"
-
-SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
-MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
+setup_env_vars
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
@@ -84,10 +67,6 @@ CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
 DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
 CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-
-# set path so OpenShift is available
-export PATH="${GO_OUT}:${PATH}"
 
 trap "exit" INT TERM
 trap "cleanup" EXIT
