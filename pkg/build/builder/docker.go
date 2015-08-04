@@ -91,6 +91,19 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 
+
+
+	sourceInfo := d.git.GetInfo(buildDir)
+	labels := setBuildLabels(sourceInfo)
+	postBuild(d.build.Spec.Output.To.Name, labels);
+
+
+	// labels := getBuildLabels(d.build)
+	// imageID, err := postBuild(d.dockerClient, d.build.Spec.Output.To.Name, labels);
+	// if err != nil {
+	// 	return err
+	// }
+
 	defer removeImage(d.dockerClient, d.build.Spec.Output.To.Name)
 
 	if push {

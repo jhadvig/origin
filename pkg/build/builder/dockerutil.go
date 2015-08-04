@@ -10,6 +10,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
+	stidocker "github.com/openshift/source-to-image/pkg/docker"
 )
 
 var (
@@ -23,9 +24,38 @@ var (
 // DockerClient is an interface to the Docker client that contains
 // the methods used by the common builder
 type DockerClient interface {
+	CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error)
+	CommitContainer(opts docker.CommitContainerOptions) (string, error)
 	BuildImage(opts docker.BuildImageOptions) error
 	PushImage(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
 	RemoveImage(name string) error
+}
+
+func postBuild(imageName string, labels map[string]string) {
+
+	config := docker.Config{
+		Image: imageName,
+		Cmd:   cmd,
+	}
+
+	d, err := docker.CreateContainer(docker.CreateContainerOptions{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(d)
+	fmt.Println(labels)
+
+// 	stiDocker := stidocker.stiDocker{
+
+// 	}
+
+// 	config := docker.Config{
+// 		// Cmd:    opts.Command,
+// 		// Env:    opts.Env,
+// 		Labels: labels,
+// 	}
+// 	imageID, err := client.CommitContainer(opts)
+// 	return imageID, err
 }
 
 // pushImage pushes a docker image to the registry specified in its tag
