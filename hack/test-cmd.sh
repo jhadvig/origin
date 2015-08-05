@@ -20,7 +20,7 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
         echo
-        cat "${TEMP_DIR}/openshift.log"
+        cat "${BASETMPDIR}/openshift.log"
         echo
         echo -------------------------------------
         echo
@@ -57,15 +57,11 @@ if [[ -z "${USE_IMAGES-}" ]]; then
   USE_IMAGES="openshift/origin-\${component}:${tag}"
 fi
 
-
-API_HOST=${API_HOST:-127.0.0.1}
-TEMP_DIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
-BASETMPDIR=$TEMP_DIR
-setup_env_vars
-
+BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
+CONFIG_DIR="${BASETMPDIR}/configs"
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-4001}
-CONFIG_DIR="${TEMP_DIR}/configs"
+setup_env_vars
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${CONFIG_DIR}"
 
 # handle profiling defaults
@@ -80,10 +76,6 @@ if [[ -n "${profile}" ]]; then
 else
   export WEB_PROFILE=cpu
 fi
-
-# set path so OpenShift is available
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-export PATH="${GO_OUT}:${PATH}"
 
 # Check openshift version
 out=$(openshift version)
@@ -108,7 +100,7 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${FAKE_HOME_DIR}"
 
-start_os_server ${TEMP_DIR}
+start_os_server ${BASETMPDIR}
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"

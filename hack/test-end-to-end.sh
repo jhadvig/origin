@@ -3,14 +3,14 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 
-test_privileges
-
 set -o errexit
 set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
+
+test_privileges
 
 echo "[INFO] Starting end-to-end test"
 
@@ -37,10 +37,9 @@ fi
 
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
-mkdir -p $LOG_DIR
-mkdir -p $ARTIFACT_DIR
-
+API_HOST="${API_HOST:-$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}')}"
 setup_env_vars
+mkdir -p $LOG_DIR $ARTIFACT_DIR
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable

@@ -21,9 +21,6 @@ cleanup() {
 		echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
 	fi
 
-	echo "[INFO] Removing ${BASETMPDIR}"
-	remove_tmp_dir
-
     echo "[INFO] Cleanup complete"
 }
 
@@ -54,10 +51,9 @@ fi
 
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
-mkdir -p $LOG_DIR
-mkdir -p $ARTIFACT_DIR
-
+API_HOST="${API_HOST:-$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}')}"
 setup_env_vars
+mkdir -p $LOG_DIR $ARTIFACT_DIR
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
