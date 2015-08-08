@@ -15,15 +15,22 @@ source ${OS_ROOT}/hack/common.sh
 
 
 cleanup() {
-    stop_openshift_server
+	out=$?
+    set +e
+    
+    echo "[INFO] Tearing down test"
+	kill_all_processes
     rm -rf ${ETCD_DIR-}
+    echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+    if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+        echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+    fi
 
-	echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-	if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-		echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-	fi
-
+    set -e
     echo "[INFO] Cleanup complete"
+
+    echo "[INFO] Exiting"
+	exit $out
 }
 
 test_privileges
@@ -70,7 +77,6 @@ trap "exit" INT TERM
 trap "cleanup" EXIT
 
 # Setup
-stop_openshift_server
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
