@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// DefaultNamespaceLabel is the key of a Build label, whose values are build metadata.
-	DefaultNamespaceLabel = "io.openshift."
+	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
+	DefaultDockerLabelNamespace = "io.openshift."
 )
 
 // getBuildEnvVars returns a map with the environment variables that should be added

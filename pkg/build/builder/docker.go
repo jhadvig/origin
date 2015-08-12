@@ -255,7 +255,10 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 
 	labels := map[string]string{}
 	sourceInfo := d.git.GetInfo(dir)
-	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, DefaultNamespaceLabel)
+	if len(d.build.Spec.Source.ContextDir) > 0 {
+		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
+	}
+	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, DefaultDockerLabelNamespace)
 	newFileData = appendMetadata(Label, newFileData, labels)
 
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
