@@ -65,7 +65,7 @@ func (s *STIBuilder) Build() error {
 		Tag:            tag,
 		ScriptsURL:     s.build.Spec.Strategy.SourceStrategy.Scripts,
 		Environment:    getBuildEnvVars(s.build),
-		LabelNamespace: DefaultNamespaceLabel,
+		LabelNamespace: DefaultDockerLabelNamespace,
 		Incremental:    s.build.Spec.Strategy.SourceStrategy.Incremental,
 		ForcePull:      s.build.Spec.Strategy.SourceStrategy.ForcePull,
 	}
