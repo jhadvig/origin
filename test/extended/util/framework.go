@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 )
 
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
@@ -81,6 +82,19 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 		return "", fmt.Errorf("ImageStreamTag %q is empty", tag)
 	}
 	return isTag.Items[0].DockerImageReference, nil
+}
+
+// GetImageLabels retrieves Docker labels from image from image repository name and
+// image reference
+func GetImageLabels(c client.ImageStreamImageInterface, imageRepoName, imageRef string) (map[string]string, error) {
+	_, imageID, err := imagestreamimage.ParseNameAndID(imageRef)
+
+	image, err := c.Get(imageRepoName, imageID)
+
+	if err != nil {
+		return map[string]string{}, err
+	}
+	return image.Image.DockerImageMetadata.Config.Labels, nil
 }
 
 // CreatePodForImage creates a Pod for the given image name. The dockerImageReference
