@@ -3,7 +3,7 @@
 This document describes how a developer can write a new extended test for
 OpenShift and the structure of extended tests.
 
-Pre-requires
+Prerequires
 ------------------
 
 In order to execute the extended tests, you have to install
@@ -24,14 +24,13 @@ The structure of this directory is following:
 access to the Kubernetes [E2E framework](https://github.com/openshift/origin/tree/master/Godeps/_workspace/src/k8s.io/kubernetes/test/e2e) helpers. It also contains OpenShift helpers are shared across multiple test cases, to make the test cases more DRY.
 * **`test/extended/fixtures`** contains the JSON and YAML fixtures are meant to be used by the extended tests.
 * **`test/extended/[images,builds,...]`** each of this Go package contains extended tests that are related together. For example, the `images` directory should contain test cases that are exercising usage of various Docker images in OpenShift.
+* **`./hack/test-extended/[group]/run.sh`** contains a shell script that helps you to execute extended tests for certain group
 * **`test/extended/extended_test.go`** is a runner for all extended test packages. Looking inside this file, you can see how you can add new extended test Go package to be compiled:
-
 ```go
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/images"
 ```
 
-** **`./hack/test-extended/[group]/run.sh`** contains a shell script that helps you to execute extended tests for certain group.
 
 Groups vs. packages
 ---------------------
