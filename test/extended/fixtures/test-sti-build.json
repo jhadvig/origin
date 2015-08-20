@@ -12,7 +12,7 @@
     "source":{
       "type":"Git",
       "git":{
-        "uri":"https://github.com/openshift/origin"
+        "uri":"https://github.com/jhadvig/origin"
       },
       "contextDir":"test/extended/fixtures/test-build-app"
     },
