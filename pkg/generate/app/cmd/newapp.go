@@ -818,6 +818,8 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		return nil, err
 	}
 
+	// CHECK IF PIPELINE/OBJECTS containdeploymentConfigRef/deploymentConfig and base upon that add env vars to buildconfig
+
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
 	warned := make(map[string]struct{})
