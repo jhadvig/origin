@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -151,9 +152,13 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 // AddArguments converts command line arguments into the appropriate bucket based on what they look like
 func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
+	f, _ := os.Create("/tmp/dat2")
+	defer f.Close()
 	for _, s := range args {
 		switch {
 		case cmdutil.IsEnvironmentArgument(s):
+			n2, _ := f.WriteString(string(s))
+			fmt.Printf("%v",n2)
 			c.Environment = append(c.Environment, s)
 		case app.IsPossibleSourceRepository(s):
 			c.SourceRepositories = append(c.SourceRepositories, s)
@@ -168,6 +173,8 @@ func (c *AppConfig) AddArguments(args []string) []string {
 			unknown = append(unknown, s)
 		}
 	}
+	// n1, _ := f.WriteString(string(args))
+	// fmt.Printf("%v",n1)
 	return unknown
 }
 
@@ -462,7 +469,17 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
 	names := map[string]int{}
+
+
+	f, _ := os.Create("/tmp/groups")
+	defer f.Close()
+
+
 	for _, group := range components.Group() {
+
+		n2, _ := f.WriteString(fmt.Sprintf("%#v \n\n %v \n\n\n -----\n\n", group, group))
+		fmt.Printf("%v",n2)
+
 		glog.V(2).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
@@ -752,6 +769,14 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 	if err != nil {
 		return nil, err
 	}
+
+
+	f, _ := os.Create("/tmp/env")
+	defer f.Close()
+	n2, _ := f.WriteString(fmt.Sprintf("%#v \n\n %v", environment, environment))
+	fmt.Printf("%v",n2)
+
+
 	if err := c.resolve(components); err != nil {
 		return nil, err
 	}

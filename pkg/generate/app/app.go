@@ -372,6 +372,7 @@ type BuildRef struct {
 	Input    *ImageRef
 	Strategy *BuildStrategyRef
 	Output   *ImageRef
+	Env      Environment
 }
 
 // BuildConfig creates a buildConfig resource from the build configuration reference

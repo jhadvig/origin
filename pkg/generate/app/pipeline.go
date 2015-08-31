@@ -92,6 +92,17 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, na
 	return nil
 }
 
+// NeedsDeployment sets the pipeline for deployment
+// func (p *Pipeline) NeedsBuild(env Environment, labels map[string]string, name string) error {
+// 	if p.Build != nil {
+// 		return nil
+// 	}
+// 	p.Build = &BuildRef{
+
+// 	}
+// 	return nil
+// }
+
 // Objects converts all the components in the pipeline into runtime objects
 func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	objects := Objects{}
