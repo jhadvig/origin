@@ -474,6 +474,10 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 	f, _ := os.Create("/tmp/groups")
 	defer f.Close()
 
+	n2, _ := f.WriteString(fmt.Sprintf("%#v \n\n %v \n\n\n -----\n\n", environment, environment))
+	fmt.Printf("%v",n2)
+
+	isNewBuild := true
 
 	for _, group := range components.Group() {
 
@@ -554,9 +558,13 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
-			if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
-				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
+			if pipeline.Deployment != nil {
+				pipeline.NeedsDeployment(environment, c.Labels, name)
+				isNewBuild = false
 			}
+			// if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
+			// 	return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
+			// }
 			common = append(common, pipeline)
 		}
 
@@ -564,6 +572,12 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			return nil, fmt.Errorf("can't create a pipeline from %s: %v", common, err)
 		}
 		pipelines = append(pipelines, common...)
+	}
+
+	if isNewBuild {
+		for _, p := range pipelines {
+			p.Build.Env = environment
+		}
 	}
 	return pipelines, nil
 }
@@ -836,6 +850,10 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		}
 		objects = append(objects, accepted...)
 	}
+
+	// if isNewBuild(pipelines) {
+
+	// }
 
 	objects = app.AddServices(objects, false)
 

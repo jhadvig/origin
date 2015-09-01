@@ -77,10 +77,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 }
 
 // NeedsDeployment sets the pipeline for deployment
-func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, name string) error {
-	if p.Deployment != nil {
-		return nil
-	}
+func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, name string) {
 	p.Deployment = &DeploymentConfigRef{
 		Name: name,
 		Images: []*ImageRef{
@@ -89,10 +86,9 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, na
 		Env:    env,
 		Labels: labels,
 	}
-	return nil
 }
 
-// NeedsDeployment sets the pipeline for deployment
+// NeedsBuild sets the pipeline for deployment
 // func (p *Pipeline) NeedsBuild(env Environment, labels map[string]string, name string) error {
 // 	if p.Build != nil {
 // 		return nil
