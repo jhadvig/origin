@@ -53,6 +53,8 @@ type AppConfig struct {
 	AsSearch bool
 	AsList   bool
 
+	WhichNew NewCommandType
+
 	refBuilder *app.ReferenceBuilder
 
 	dockerSearcher                  app.Searcher
@@ -70,6 +72,16 @@ type AppConfig struct {
 	osclient        client.Interface
 	originNamespace string
 }
+
+// NewCommandType
+type NewCommandType string
+
+const (
+	// NewAppCommand
+	NewAppCommand NewCommandType = "app"
+	// NewAppCommand
+	NewBuildCommand NewCommandType = "build"
+)
 
 // UsageError is an interface for printing usage errors
 type UsageError interface {
@@ -511,7 +523,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						}
 					}
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
+				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvs(environment), source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
@@ -855,4 +867,11 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.DockerImages) > 0 ||
 		len(c.Templates) > 0 ||
 		len(c.TemplateFiles) > 0
+}
+
+func (c *AppConfig) GetBuildEnvs(environment app.Environment) app.Environment {
+	if c.WhichNew == NewBuildCommand {
+		return environment
+	}
+	return app.Environment{}
 }

@@ -117,6 +117,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		Long:    newAppLong,
 		Example: fmt.Sprintf(newAppExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
+			config.WhichNew = newcmd.NewAppCommand
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)
