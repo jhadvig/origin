@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/util/file"
@@ -93,11 +94,13 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	var1, err := ioutil.ReadFile("/tmp/gitcredentials.")
 	var2, err := ioutil.ReadFile("/tmp/gitcredentialscfg.")
 	if err != nil {
-		return err
+		glog.V(1).Infof("---------> %q", "DPC")
 	}
 
 	glog.V(1).Infof("---------> %q", string(var1))
 	glog.V(1).Infof("---------> %q", string(var2))
+
+	time.Sleep(60 * time.Second)
 
 	return ensureGitConfigIncludes(gitconfig.Name())
 }
