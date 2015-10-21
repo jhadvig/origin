@@ -1,5 +1,7 @@
 package scmauth
 
+import "net/url"
+
 // SCMAuth is an interface implemented by different authentication providers
 // which are responsible for setting up the credentials to be used when accessing
 // private repository.
@@ -11,5 +13,5 @@ type SCMAuth interface {
 	Handles(name string) bool
 
 	// Setup lays down the required files for this authentication method to work
-	Setup(baseDir string) error
+	Setup(baseDir string) (*url.URL, error)
 }

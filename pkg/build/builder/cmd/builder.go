@@ -45,8 +45,12 @@ func run(builderFactory factoryFunc) {
 			glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
 		}
 		scmAuths := auths(sourceURL)
-		if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
+		url, err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths)
+		if err != nil {
 			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
+		}
+		if url != nil {
+			build.Spec.Source.Git.URI = url.String()
 		}
 	}
 	b := builderFactory(client, endpoint, &build)
@@ -85,12 +89,12 @@ func fixSecretPermissions() error {
 	return nil
 }
 
-func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) error {
+func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) (*url.URL, error) {
 	fixSecretPermissions()
 	sourceSecretDir := os.Getenv("SOURCE_SECRET_PATH")
 	files, err := ioutil.ReadDir(sourceSecretDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Filter the list of SCMAuths based on the secret files that are present
@@ -106,19 +110,21 @@ func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) erro
 	}
 
 	if len(scmAuthsPresent) == 0 {
-		return fmt.Errorf("no auth handler was found for the provided secret %q",
+		return nil, fmt.Errorf("no auth handler was found for the provided secret %q",
 			sourceSecretName)
 	}
 
+	url := &url.URL{}
+
 	for name, auth := range scmAuthsPresent {
 		glog.V(3).Infof("Setting up SCMAuth %q", name)
-		if err := auth.Setup(sourceSecretDir); err != nil {
+		if url, err = auth.Setup(sourceSecretDir); err != nil {
 			// If an error occurs during setup, fail the build
-			return fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
+			return nil, fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
 		}
 	}
 
-	return nil
+	return url, nil
 }
 
 func auths(sourceURL *url.URL) []scmauth.SCMAuth {

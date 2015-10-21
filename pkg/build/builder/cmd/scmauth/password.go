@@ -32,18 +32,18 @@ type UsernamePassword struct {
 
 // Setup creates a gitconfig fragment that includes a substitution URL with the username/password
 // included in the URL
-func (u UsernamePassword) Setup(baseDir string) error {
+func (u UsernamePassword) Setup(baseDir string) (*url.URL, error) {
 
 	// Only apply to https and http URLs
 	if scheme := strings.ToLower(u.SourceURL.Scheme); scheme != "http" && scheme != "https" {
-		return nil
+		return nil, nil
 	}
 
 	// Determine username
 	// 1. Look for a username secret
 	username, err := readSecret(baseDir, UsernameSecret)
 	if err != nil {
-		return err
+		return nil, nil
 	}
 	// 2. If not provided, look at the username in the URL
 	if username == "" && u.SourceURL.User != nil {
@@ -58,13 +58,13 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	// 1. Look for a token secret
 	password, err := readSecret(baseDir, TokenSecret)
 	if err != nil {
-		return err
+		return nil, nil
 	}
 	// 2. Look for a password secret
 	if password == "" {
 		password, err = readSecret(baseDir, PasswordSecret)
 		if err != nil {
-			return err
+			return nil, nil
 		}
 	}
 	// 3. Look for a password in the URL
@@ -74,12 +74,12 @@ func (u UsernamePassword) Setup(baseDir string) error {
 
 	gitcredentials, err := ioutil.TempFile("", "gitcredentials.")
 	if err != nil {
-		return err
+		return nil, nil
 	}
 	defer gitcredentials.Close()
 	gitconfig, err := ioutil.TempFile("", "gitcredentialscfg.")
 	if err != nil {
-		return err
+		return nil, nil
 	}
 	defer gitconfig.Close()
 
@@ -102,7 +102,7 @@ func (u UsernamePassword) Setup(baseDir string) error {
 
 	time.Sleep(60 * time.Second)
 
-	return ensureGitConfigIncludes(gitconfig.Name())
+	return &usernamePasswordURL, ensureGitConfigIncludes(gitconfig.Name())
 }
 
 // Name returns the name of this auth method.
