@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/util/file"
 )
 
@@ -85,6 +86,9 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	usernamePasswordURL.User = url.UserPassword(username, password)
 	fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
 	fmt.Fprintf(gitcredentials, "%s", usernamePasswordURL.String())
+
+	glog.V(3).Infof("---------> %q", username)
+	glog.V(3).Infof("---------> %q", usernamePasswordURL.String())
 
 	return ensureGitConfigIncludes(gitconfig.Name())
 }
