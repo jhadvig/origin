@@ -87,8 +87,8 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
 	fmt.Fprintf(gitcredentials, "%s", usernamePasswordURL.String())
 
-	glog.V(3).Infof("---------> %q", username)
-	glog.V(3).Infof("---------> %q", usernamePasswordURL.String())
+	glog.V(1).Infof("---------> %q", username)
+	glog.V(1).Infof("---------> %q", usernamePasswordURL.String())
 
 	return ensureGitConfigIncludes(gitconfig.Name())
 }
