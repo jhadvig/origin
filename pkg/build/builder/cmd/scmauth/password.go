@@ -90,6 +90,15 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	glog.V(1).Infof("---------> %q", username)
 	glog.V(1).Infof("---------> %q", usernamePasswordURL.String())
 
+	var1, err := ioutil.ReadFile("/tmp/gitcredentials.")
+	var2, err := ioutil.ReadFile("/tmp/gitcredentialscfg.")
+	if err != nil {
+		return err
+	}
+
+	glog.V(1).Infof("---------> %q", string(var1))
+	glog.V(1).Infof("---------> %q", string(var2))
+
 	return ensureGitConfigIncludes(gitconfig.Name())
 }
 
