@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -100,7 +101,9 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 	return nil
 }
 
-// ParseEnv parses the list of environment variables into kubernetes EnvVar
+// ParseEnv parses the list of environment variables into kubernetes EnvVar.
+// Returns map of environment variables to be added with their values, array
+// of environment variables to be removed and error.
 func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
 	exists := sets.NewString()
@@ -252,7 +255,9 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	skipped := 0
-	for _, info := range infos {
+	var infosMsgs = make([][]string, len(infos))
+	var updated = make([]bool, len(infos))
+	for i, info := range infos {
 		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
@@ -260,7 +265,18 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 				return nil
 			}
 			for _, c := range containers {
+				oldEnv := c.Env
+				for _, env := range remove {
+					_, ok := findEnv(c.Env, env); if !ok {
+						infosMsgs[i] = append(infosMsgs[i], fmt.Sprintf("environment variable %q not found in %s container\n", env, c.Name))
+					}
+				}
 				c.Env = updateEnv(c.Env, env, remove)
+				if reflect.DeepEqual(oldEnv, c.Env) {
+					updated[i] = false
+				} else {
+					updated[i] = true
+				}
 
 				if list {
 					fmt.Fprintf(out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
@@ -340,8 +356,16 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 		info.Refresh(obj, true)
 
+		for _, msg := range infosMsgs[i] {
+			fmt.Fprint(out, msg)
+		}
+
 		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
-		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
+		outputMsg := "updated"
+		if !updated[i] {
+			outputMsg = "nothing to update"
+		}
+		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, outputMsg)
 	}
 	if failed {
 		return errExit
