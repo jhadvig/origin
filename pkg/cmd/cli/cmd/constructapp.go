@@ -14,7 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/generate/source"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -82,7 +84,7 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 
 func constructFromGitRepo(reader io.Reader, out io.Writer) error {
 	fmt.Fprintf(out, "Please specify your git repository URL.")
-	fmt.Fprintf(out, "\nex. https://github.com/openshift/origin.git\n\n")
+	fmt.Fprintf(out, "\nex. https://github.com/openshift/ruby-hello-world.git\n\n")
 	gitRepoLoc := util.PromptForString(reader, out, "Git repository: ")
 
 	// Try to determine what type of repository this might be:
@@ -105,5 +107,20 @@ func constructFromGitRepo(reader io.Reader, out io.Writer) error {
 		fmt.Fprintf(out, "Something went pretty wrong: %s\n", err)
 		return fmt.Errorf("Error cloning git repository at: %s", srcRef.URL.String())
 	}
+
+	// Now we try to detect what kind of repo this might be:
+	srcRepoEnumerator := app.SourceRepositoryEnumerator{
+		Detectors: source.DefaultDetectors,
+		Tester:    dockerfile.NewTester(),
+	}
+	info, err := srcRepoEnumerator.Detect(srcRef.Dir)
+	if err != nil {
+		return err
+	}
+	for i := range info.Types {
+		t := info.Types[i]
+		fmt.Fprintf(out, "This repository appears to contain: %s - %s\n", t.Platform, t.Version)
+	}
+
 	return nil
 }
