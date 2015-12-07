@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"net/url"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -21,6 +22,19 @@ import (
 const (
 	constructAppLong = `
 Interactively construct a new application.
+`
+
+	constructAppMsg = `We're going to create an OpenShift application for you!
+(1) Create an application based on a git repository
+(2) Deploy an application based on a pre-existing imagestream
+(3) Instantiate a template
+`
+	setAdditionMetaMsg = `Want to set additional %[1]s to your project ?`
+	setEnvForResourceMsg = `Select the resource to which you would like to add the specified environment variables:
+(1) BuildConfig
+(2) DeploymentConfig
+(3) BuildConfig and DeploymentConfig
+(4) Globally to all resources created during application construction
 `
 )
 
@@ -54,10 +68,7 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, reader io
 // RunConstructApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 
-	fmt.Fprint(out, "We're going to create an OpenShift application for you!\n\n")
-	fmt.Fprintf(out, "(1) Create an application based on a git repository\n")
-	fmt.Fprintf(out, "(2) Deploy an application based on a pre-existing imagestream\n")
-	fmt.Fprintf(out, "(3) Instantiate a template\n\n")
+	fmt.Fprintf(out, constructAppMsg)
 
 	validChoices := sets.NewString("1", "2", "3")
 	userChoice := util.PromptForString(reader, out, "What type of application would you like to create: ")
@@ -106,4 +117,56 @@ func constructFromGitRepo(reader io.Reader, out io.Writer) error {
 		return fmt.Errorf("Error cloning git repository at: %s", srcRef.URL.String())
 	}
 	return nil
+}
+
+type ConstructedResourceEnvs struct {
+	BuildConfigEnvs []kapi.EnvVar
+	DeploymentConfigEnvs []kapi.EnvVar
+	SetOnAll bool
+} 
+
+// addEnvVars will prompt user for adding environment variables to desired resource, either bc, dc,
+// both or on each bc and dc that the app construction creates.
+func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs ,error) {
+	addEnv := true
+	validResourceChoices := sets.NewString("1", "2", "3","4")
+
+	bcEnvVars := 
+	dcEnvVars := 
+	EnvVars := 
+
+	resourceEnvVars := ConstructedResourceEnvs{}
+
+	envArgs := []string{}
+
+	while (addEnv) {
+		addEnv = util.PromptForBool(reader, out, fmt.Sprintf(setAdditionMetaMsg, "environment variable"))
+		if addEnv {
+			userChoice := util.PromptForString(reader, out, setEnvForResourceMsg)
+			while (validResourceChoices.Has(userChoice)) {
+				userChoice := util.PromptForString(reader, out, setEnvForResourceMsg)
+			}
+
+			envString := util.PromptForString(reader, out, "Write down environment variables you would like to add in following form: 'KEY_1=VAL_1 ... KEY_N=VAL_N'")
+			envVars, err := ParseEnv(strings(envString, " "), reader)
+
+			switch userChoice {
+			case "4":
+				resourceEnvVars.SetOnAll = true
+				fallthrough
+			case "3":
+				fallthrough
+			case "2":
+				resourceEnvVars.DeploymentConfigEnvs = append(resourceEnvVars.DeploymentConfigEnvs, envVars...)
+				if (userChoice != "3") {
+					continue
+				}
+				fallthrough
+			case "1":
+				resourceEnvVars.BuildConfigEnvs = append(resourceEnvVars.BuildConfigEnvs, envVars...)
+			}
+		}
+
+	}
+	return resourceEnvVars
 }
