@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -127,28 +128,24 @@ type ConstructedResourceEnvs struct {
 
 // addEnvVars will prompt user for adding environment variables to desired resource, either bc, dc,
 // both or on each bc and dc that the app construction creates.
-func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs ,error) {
+func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs, error) {
 	addEnv := true
 	validResourceChoices := sets.NewString("1", "2", "3","4")
-
-	bcEnvVars := 
-	dcEnvVars := 
-	EnvVars := 
-
 	resourceEnvVars := ConstructedResourceEnvs{}
 
-	envArgs := []string{}
-
-	while (addEnv) {
-		addEnv = util.PromptForBool(reader, out, fmt.Sprintf(setAdditionMetaMsg, "environment variable"))
+	for addEnv {
+		addEnv := util.PromptForBool(reader, out, fmt.Sprintf(setAdditionMetaMsg, "environment variable"))
 		if addEnv {
 			userChoice := util.PromptForString(reader, out, setEnvForResourceMsg)
-			while (validResourceChoices.Has(userChoice)) {
-				userChoice := util.PromptForString(reader, out, setEnvForResourceMsg)
+			for validResourceChoices.Has(userChoice) {
+				userChoice = util.PromptForString(reader, out, setEnvForResourceMsg)
 			}
 
 			envString := util.PromptForString(reader, out, "Write down environment variables you would like to add in following form: 'KEY_1=VAL_1 ... KEY_N=VAL_N'")
-			envVars, err := ParseEnv(strings(envString, " "), reader)
+			envVars, _, err := ParseEnv(strings.Split(envString, " "), reader)
+			if err != nil {
+				return ConstructedResourceEnvs{}, err
+			}
 
 			switch userChoice {
 			case "4":
@@ -168,5 +165,5 @@ func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs ,error
 		}
 
 	}
-	return resourceEnvVars
+	return resourceEnvVars, nil
 }
