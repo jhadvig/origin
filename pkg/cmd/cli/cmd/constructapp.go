@@ -42,41 +42,30 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, out io.Wr
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code to use to build this application.")
-	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")
-	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image-stream", "i", config.ImageStreams, "Name of an image stream to use in the app.")
-	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to include in the app.")
-	cmd.Flags().StringSliceVar(&config.Templates, "template", config.Templates, "Name of a stored template to use in the app.")
-	cmd.Flags().StringSliceVarP(&config.TemplateFiles, "file", "f", config.TemplateFiles, "Path to a template file to use for the app.")
-	cmd.Flags().StringSliceVarP(&config.TemplateParameters, "param", "p", config.TemplateParameters, "Specify a list of key value pairs (e.g., -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
-	cmd.Flags().StringSliceVar(&config.Groups, "group", config.Groups, "Indicate components that should be grouped together as <comp1>+<comp2>.")
-	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set into each container.")
-	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
-	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
-	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
-	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
-	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
-	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
-	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
-	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
-	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
-	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false, "If true, do not actually create resources.")
-
-	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
-	// Need a better solution.
-	// cmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|template|templatefile.")
-	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
-	cmd.Flags().String("output-template", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
-
 	return cmd
 }
 
 // RunConstructApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunConstructApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 
-	fmt.Fprintf(out, "Hey look we're running construct-app!!!")
+	fmt.Fprintf(out, "Hey look we're running construct-app!!!\n")
+
+	fmt.Fprint(out, "We're going to create an OpenShift application for you!\n")
+	fmt.Fprintf(out, "What would you like to do?\n")
+	fmt.Fprintf(out, "(1) Create an application based on a git repository\n")
+	fmt.Fprintf(out, "(2) Deploy an application based on a pre-existing imagestream\n")
+	fmt.Fprintf(out, "(3) Instantiate a template\n")
+	// TODO: recieve input 1-3 and validate it's correct
+	userChoice := 1
+
+	if userChoice == 1 {
+		// TODO: clone git repository and try to determine type of application here
+		fmt.Fprintf(out, "You chose to create an application from an existing git repository, where is it?\n")
+	} else if userChoice == 2 {
+		fmt.Fprintf(out, "You chose to create an application from an existing imagesteam?\n")
+	} else if userChoice == 3 {
+		fmt.Fprintf(out, "You chose to instantiate a template. We don't support that yet.\n")
+	}
+
 	return nil
 }
