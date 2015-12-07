@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -49,15 +50,18 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, reader io
 // RunConstructApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 
-	fmt.Fprintf(out, "Hey look we're running construct-app!!!\n")
-
-	fmt.Fprint(out, "We're going to create an OpenShift application for you!\n")
-	fmt.Fprintf(out, "What would you like to do?\n")
+	fmt.Fprint(out, "We're going to create an OpenShift application for you!\n\n")
 	fmt.Fprintf(out, "(1) Create an application based on a git repository\n")
 	fmt.Fprintf(out, "(2) Deploy an application based on a pre-existing imagestream\n")
-	fmt.Fprintf(out, "(3) Instantiate a template\n")
-	// TODO: recieve input 1-3 and validate it's correct
+	fmt.Fprintf(out, "(3) Instantiate a template\n\n")
+
+	validChoices := sets.NewString("1", "2", "3")
 	userChoice := util.PromptForString(reader, out, "What type of application would you like to create: ")
+	// Keep prompting until they give us a valid choice:
+	for !validChoices.Has(userChoice) {
+		fmt.Fprintf(out, "Invalid input: %s\n", userChoice)
+		userChoice = util.PromptForString(reader, out, "What type of application would you like to create: ")
+	}
 
 	if userChoice == "1" {
 		// TODO: clone git repository and try to determine type of application here
