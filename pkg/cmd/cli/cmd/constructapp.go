@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 )
@@ -19,7 +20,7 @@ Interactively construct a new application.
 )
 
 // NewCmdConstructApplication implements the OpenShift cli construct-app command
-func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 
@@ -34,7 +35,7 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, out io.Wr
 			config.SetTyper(typer)
 			config.SetClientMapper(f.ClientMapperForCommand())
 
-			err := RunConstructApplication(fullName, f, out, c, args, config)
+			err := RunConstructApplication(fullName, f, reader, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -46,7 +47,7 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, out io.Wr
 }
 
 // RunConstructApplication contains all the necessary functionality for the OpenShift cli new-app command
-func RunConstructApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 
 	fmt.Fprintf(out, "Hey look we're running construct-app!!!\n")
 
@@ -56,14 +57,14 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, out io.Write
 	fmt.Fprintf(out, "(2) Deploy an application based on a pre-existing imagestream\n")
 	fmt.Fprintf(out, "(3) Instantiate a template\n")
 	// TODO: recieve input 1-3 and validate it's correct
-	userChoice := 1
+	userChoice := util.PromptForString(reader, out, "What type of application would you like to create: ")
 
-	if userChoice == 1 {
+	if userChoice == "1" {
 		// TODO: clone git repository and try to determine type of application here
 		fmt.Fprintf(out, "You chose to create an application from an existing git repository, where is it?\n")
-	} else if userChoice == 2 {
+	} else if userChoice == "2" {
 		fmt.Fprintf(out, "You chose to create an application from an existing imagesteam?\n")
-	} else if userChoice == 3 {
+	} else if userChoice == "3" {
 		fmt.Fprintf(out, "You chose to instantiate a template. We don't support that yet.\n")
 	}
 
