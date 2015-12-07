@@ -9,9 +9,11 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -32,7 +34,7 @@ Interactively construct a new application.
 (2) Deploy an application based on a pre-existing imagestream
 (3) Instantiate a template
 `
-	setAdditionMetaMsg = `Want to set additional %[1]s to your project ?`
+	setAdditionMetaMsg   = `Want to set additional %[1]s to your project ?`
 	setEnvForResourceMsg = `Select the resource to which you would like to add the specified environment variables:
 (1) BuildConfig
 (2) DeploymentConfig
@@ -131,23 +133,59 @@ func constructFromGitRepo(reader io.Reader, out io.Writer) error {
 	}
 	for i := range info.Types {
 		t := info.Types[i]
-		fmt.Fprintf(out, "This repository appears to contain: %s - %s\n", t.Platform, t.Version)
+		fmt.Fprintf(out, "This appears to be a %s project.\n\n", t.Platform)
 	}
+
+	// Prompt the user for a namespace, imagestream, and tag
+	// TODO: in the future support showing the user lists to choose from.
+	fmt.Fprintf(out, "You now must specify an image stream for the resulting application.\n\n")
+
+	namespace := util.PromptForString(reader, out, "Namespace: ")
+	imageStream := util.PromptForString(reader, out, "Image Stream: ")
+	tag := util.PromptForString(reader, out, "Tag: ")
+
+	// Create a BuildConfig:
+	objRef := kapi.ObjectReference{
+		Kind:      "ImageStreamTag",
+		Namespace: namespace,
+		Name:      fmt.Sprintf("%s:%s", imageStream, tag),
+	}
+
+	bc := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: gitRepoUrl.String(),
+					},
+				},
+				Strategy: api.BuildStrategy{
+					Type: api.SourceBuildStrategyType,
+					SourceStrategy: &api.SourceBuildStrategy{
+						From: objRef,
+					},
+				},
+			},
+		},
+	}
+	data, err := latest.Codec.Encode(bc)
+	fmt.Fprint(out, string(data))
 
 	return nil
 }
 
 type ConstructedResourceEnvs struct {
-	BuildConfigEnvs []kapi.EnvVar
+	BuildConfigEnvs      []kapi.EnvVar
 	DeploymentConfigEnvs []kapi.EnvVar
-	SetOnAll bool
-} 
+	SetOnAll             bool
+}
 
 // addEnvVars will prompt user for adding environment variables to desired resource, either bc, dc,
 // both or on each bc and dc that the app construction creates.
 func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs, error) {
 	addEnv := true
-	validResourceChoices := sets.NewString("1", "2", "3","4")
+	validResourceChoices := sets.NewString("1", "2", "3", "4")
 	resourceEnvVars := ConstructedResourceEnvs{}
 
 	for addEnv {
@@ -172,7 +210,7 @@ func addEnvVars(reader io.Reader, out io.Writer) (ConstructedResourceEnvs, error
 				fallthrough
 			case "2":
 				resourceEnvVars.DeploymentConfigEnvs = append(resourceEnvVars.DeploymentConfigEnvs, envVars...)
-				if (userChoice != "3") {
+				if userChoice != "3" {
 					continue
 				}
 				fallthrough
