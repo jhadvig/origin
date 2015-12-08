@@ -26,7 +26,10 @@ import (
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/client"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/fields"
 )
 
 const (
@@ -79,8 +82,25 @@ func NewCmdConstructApplication(fullName string, f *clientcmd.Factory, reader io
 	return cmd
 }
 
+type ConstructAppMeta struct {
+	Namespace string
+	Client    *client.Client
+}
+
 // RunConstructApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+
+	namespace, _, err := f.DefaultNamespace()
+	osClient, _, err := f.Clients()
+
+	constructMeta := ConstructAppMeta{
+		Namespace: namespace,
+		Client:    osClient,
+	}
+
+	if err != nil {
+		fmt.Printf("Error %v", err)
+	}
 
 	items := &kapi.List{}
 
@@ -88,6 +108,7 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 	is := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: appName,
+			Namespace: namespace,
 		},
 	}
 	items.Items = append(items.Items, is)
@@ -106,7 +127,7 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 
 		// TODO: clone git repository and try to determine type of application here
 		fmt.Fprintf(out, "You chose to create an application from an existing git repository, where is it?\n")
-		bc, ist := constructFromGitRepo(appName, reader, out, userEnv.BuildConfigEnvs)
+		bc, ist := constructFromGitRepo(appName, reader, out, userEnv.BuildConfigEnvs, constructMeta)
 		ports := collectPorts(f, reader, out, ist.namespace, ist.name, ist.tag)
 		containerPorts := createContainerPorts(ports)
 		triggerIST := &imageStreamTag{
@@ -127,7 +148,7 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 		userEnv, _ := addEnvVars(reader, out)
 		// TODO: clone git repository and try to determine type of application here
 		fmt.Fprintf(out, "You chose to create an application from an existing image stream\n")
-		ist := getImageStream(reader, out)
+		ist := getImageStream(reader, out, constructMeta)
 		ports := collectPorts(f, reader, out, ist.namespace, ist.name, ist.tag)
 		containerPorts := createContainerPorts(ports)
 		dc := defineDeploymentConfig(appName, ist, userEnv.DeploymentConfigEnvs, containerPorts)
@@ -170,16 +191,51 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 	return nil
 }
 
-func getImageStream(reader io.Reader, out io.Writer) *imageStreamTag {
+func getImageStream(reader io.Reader, out io.Writer, constructMeta ConstructAppMeta) *imageStreamTag {
 	fmt.Fprintf(out, "You now must specify an image stream for the resulting application.\n\n")
-	namespace := util.PromptForString(reader, out, "Namespace: ")
-	imageStream := util.PromptForString(reader, out, "Image Stream: ")
-	tag := util.PromptForString(reader, out, "Tag: ")
 
-	return &imageStreamTag{name: imageStream, namespace: namespace, tag: tag}
+	promptMsg := fmt.Sprintf("Namespace [%s]: ", constructMeta.Namespace)
+	namespace := util.PromptForStringWithDefault(reader, out, constructMeta.Namespace, promptMsg)
+	if namespace == "" {
+		namespace = constructMeta.Namespace
+	}
+
+	imageStreamList, err := constructMeta.Client.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
+	imageStreamsChoiceMsg := "Choose Image Stream number: \n"
+	for i, is := range imageStreamList.Items {
+		imageStreamsChoiceMsg = imageStreamsChoiceMsg + fmt.Sprintf("(%d) %s \n", i+1, is.Name)
+	}
+	imageStreamsChoiceMsg = imageStreamsChoiceMsg + "Select an option: "
+	// TODO: validate correct user IS choice
+
+	imageStreamNum := util.PromptForString(reader, out, imageStreamsChoiceMsg)
+    i, err := strconv.Atoi(imageStreamNum)
+    if err != nil {
+        fmt.Println(err)
+    }
+	chosenImageStream := imageStreamList.Items[i-1]
+
+	var imageStreamTags []string
+	for tag, _ := range chosenImageStream.Status.Tags {
+		imageStreamTags = append(imageStreamTags, tag)
+	}
+
+	imageStreamTagsMsg := "\nChoose Image Stream Tag: \n"
+	for i, tag := range imageStreamTags {
+		imageStreamTagsMsg = imageStreamTagsMsg + fmt.Sprintf("(%d) %s \n", i+1, tag)
+	}
+	imageStreamTagsMsg = imageStreamTagsMsg + "Select an option: "
+	imageStreamTagNum := util.PromptForString(reader, out, imageStreamTagsMsg)
+    i, err = strconv.Atoi(imageStreamTagNum)
+    if err != nil {
+        fmt.Println(err)
+    }
+	tag := imageStreamTags[i-1]
+
+	return &imageStreamTag{name: chosenImageStream.Name, namespace: namespace, tag: tag}
 }
 
-func constructFromGitRepo(appName string, reader io.Reader, out io.Writer, envs []kapi.EnvVar) (*api.BuildConfig, *imageStreamTag) {
+func constructFromGitRepo(appName string, reader io.Reader, out io.Writer, envs []kapi.EnvVar, constructMeta ConstructAppMeta) (*api.BuildConfig, *imageStreamTag) {
 	fmt.Fprintf(out, "Please specify your git repository URL.")
 	fmt.Fprintf(out, "\nex. https://github.com/openshift/ruby-hello-world.git\n\n")
 	gitRepoLoc := util.PromptForString(reader, out, "Git repository: ")
@@ -225,7 +281,7 @@ func constructFromGitRepo(appName string, reader io.Reader, out io.Writer, envs 
 
 	// Prompt the user for a namespace, imagestream, and tag
 	// TODO: in the future support showing the user lists to choose from.
-	ist := getImageStream(reader, out)
+	ist := getImageStream(reader, out, constructMeta)
 
 	// Create a BuildConfig:
 	objRef := kapi.ObjectReference{
@@ -443,7 +499,7 @@ func collectPorts(f *clientcmd.Factory, reader io.Reader, out io.Writer, namespa
 	for true {
 		fmt.Fprintf(out, "The %s:%s imagestreamtag exposes the following ports:\n", imagestream, tag)
 		for i, port := range appPorts {
-			fmt.Fprintf(out, "%d) %d (service=%v,route=%v)\n", i, port.port, port.asService, port.asRoute)
+			fmt.Fprintf(out, "(%d) %d (service=%v,route=%v)\n", i, port.port, port.asService, port.asRoute)
 		}
 		fmt.Fprintf(out, "%v) Add a port\n", len(appPorts))
 		fmt.Fprintf(out, "%v) Done\n", len(appPorts)+1)
