@@ -109,7 +109,11 @@ func RunConstructApplication(fullName string, f *clientcmd.Factory, reader io.Re
 		bc, ist := constructFromGitRepo(appName, reader, out, userEnv.BuildConfigEnvs)
 		ports := collectPorts(f, reader, out, ist.namespace, ist.name, ist.tag)
 		containerPorts := createContainerPorts(ports)
-		dc := defineDeploymentConfig(appName, ist, userEnv.DeploymentConfigEnvs, containerPorts)
+		triggerIST := &imageStreamTag{
+			name: appName,
+			tag:  "latest",
+		}
+		dc := defineDeploymentConfig(appName, triggerIST, userEnv.DeploymentConfigEnvs, containerPorts)
 		items.Items = append(items.Items, dc)
 		items.Items = append(items.Items, bc)
 		for i, port := range ports {
@@ -257,6 +261,7 @@ func constructFromGitRepo(appName string, reader io.Reader, out io.Writer, envs 
 				Output: api.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "ImageStreamTag",
+
 						Name: appName + ":latest",
 					},
 				},
@@ -264,6 +269,7 @@ func constructFromGitRepo(appName string, reader io.Reader, out io.Writer, envs 
 		},
 	}
 	return bc, ist
+
 	//	data, err := latest.Codec.Encode(bc)
 	//	fmt.Fprint(out, string(data))
 
@@ -329,7 +335,7 @@ func defineDeploymentConfig(name string, ist *imageStreamTag, envs []kapi.EnvVar
 					},
 					From: kapi.ObjectReference{
 						Namespace: ist.namespace,
-						Name:      ist.name + ":" + ist.tag,
+						Name:      ist.name + ":latest",
 						Kind:      "ImageStreamTag",
 					},
 				},
