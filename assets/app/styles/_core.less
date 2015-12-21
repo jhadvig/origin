@@ -757,6 +757,45 @@ a.disabled-link {
   }
 }
 
+.edit-form {
+  margin: 30px auto;
+  .form-groups {
+    padding-left: 10px;
+    border-left: 1px solid #eee;
+  }
+  .form-groups:hover {
+    padding-left: 10px;
+    border-left: 1px solid #0099d3;
+  }
+  .form-group {
+    .dockerfile-editor {
+      height: 200px;
+    }
+  }
+  .labels {
+    .form-group {
+      width: 44%;
+      .form-control {
+        width: 100%;
+      }
+    }
+  }
+  .checkbox {
+    margin: 10px;
+  }
+  .section {
+    padding-bottom: 15px;
+  }
+
+  @media (max-width: @screen-sm-min) {
+    .labels {
+      .form-group {
+        width: 100%;
+      }
+    }
+  }
+}
+
 .status {
   min-width: 130px;
   .status-icon {
