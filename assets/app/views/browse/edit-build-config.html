@@ -1,0 +1,16 @@
+<div class="content">
+  <project-page>
+    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+    <alerts alerts="alerts"></alerts>
+    <div ng-if="!loaded">Loading...</div>
+    <div class="tile" ng-if="buildConfig">
+
+      <div>
+        <h1>
+          Edit {{buildConfig.metadata.name}}
+        </h1>
+      </div>
+    </div>
+
+  </project-page>
+</div>

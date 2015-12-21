@@ -122,6 +122,10 @@ angular
         templateUrl: 'views/browse/build-config.html',
         controller: 'BuildConfigController'
       })
+      .when('/project/:project/browse/builds/:buildconfig/edit', {
+        templateUrl: 'views/browse/edit-build-config.html',
+        controller: 'EditBuildConfigController'
+      })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: function(params) {
           if (params.view === 'chromeless') {
