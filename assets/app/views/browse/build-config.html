@@ -28,11 +28,7 @@
                 ><i class="fa fa-play fa-fw" aria-hidden="true"></i> Start Build</a>
               </li>
               <li>
-                <edit-form-link
-                  resource="buildConfig"
-                  kind="buildconfigs"
-                  alerts="alerts">
-                </edit-form-link>
+                <a ng-href="{{buildConfig | editResourceURL}}" role="button"><i class="fa fa-pencil fa-fw" aria-hidden="true"></i> Edit </a>
               </li>
               <li>
                 <edit-link

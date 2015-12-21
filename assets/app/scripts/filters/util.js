@@ -341,4 +341,10 @@ angular.module('openshiftConsole')
     return function(resource, kind, namespace) {
       return Navigate.resourceURL(resource, kind, namespace);
     };
+  })
+  .filter('editResourceURL', function(Navigate) {
+    return function(resource, kind, namespace) {
+      var url = Navigate.resourceURL(resource, kind, namespace) + "/edit";
+      return url;
+    };
   });
