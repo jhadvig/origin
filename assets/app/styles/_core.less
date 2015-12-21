@@ -860,6 +860,62 @@ a.disabled-link {
   }
 }
 
+.edit-form {
+  margin: 30px auto;
+  .form-group {
+    .multiselector {
+      width: 31%;
+      display: inline-block;
+    }
+    .simpleselector {
+      display: inline-block;
+    }
+    .multiselector-label {
+      display: none;
+      margin-bottom: 0px;
+      margin-top: 5px;
+    }
+    .label-with-selector {
+      display: inline;
+    }
+  }
+  .labels {
+    .form-group {
+      width: 44%;
+      .form-control {
+        width: 100%;
+      }
+    }
+  }
+  .checkbox {
+    margin: 10px;
+  }
+  .section {
+    padding-bottom: 15px;
+  }
+
+  @media (max-width: @screen-sm-min) {
+    .form-group {
+      .multiselector {
+        display: block;
+        width: 100%;
+      }
+      .punctuation {
+        display: none;
+      }
+      .multiselector-label {
+        display: block;
+        font-weight: normal;
+      }
+    }
+    .labels {
+      .form-group {
+        width: 100%;
+      }
+    }
+  }
+}
+
 .status {
   min-width: 130px;
   .status-icon {

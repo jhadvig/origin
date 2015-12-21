@@ -10,7 +10,7 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_overview-monopod.html',
       link: function(scope) {
         scope.viewPod = function() {
-          var url = Navigate.resourceURL(scope.pod, "Pod", scope.pod.metadata.namespace);
+          var url = Navigate.resourceURL(scope.pod, "Pod", scope.pod.metadata.namespace, "browse");
           $location.url(url);
         };
       }

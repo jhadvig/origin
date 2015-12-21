@@ -18,7 +18,7 @@ angular.module("openshiftConsole")
     var humanize = $filter('humanize');
 
     $scope.projectName = $routeParams.project;
-    $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
+    $scope.sourceURLPattern = ApplicationGenerator.sourceURLPattern;
 
     ProjectsService
       .get($routeParams.project)

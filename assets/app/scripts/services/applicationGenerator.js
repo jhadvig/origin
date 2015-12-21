@@ -6,6 +6,8 @@ angular.module("openshiftConsole")
     var oApiVersion = DataService.oApiVersion;
     var k8sApiVersion = DataService.k8sApiVersion;
 
+    var sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
+
     var scope = {};
 
     scope._generateSecret = function(){

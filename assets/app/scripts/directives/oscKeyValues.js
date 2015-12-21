@@ -115,7 +115,7 @@ angular.module("openshiftConsole")
    *              (e.g. foo:bar).  Default: ":"
    * keyTitle:    The value to use as the key input's placeholder. Default: Name
    * editable:    true if the intention is to display values only otherwise false (default)
-   * keyValidaor: The validator to use for validating keys
+   * keyValidator: The validator to use for validating keys
    *   - always: Any value is allowed (Default).
    *   - env:    Validate as an ENV var /^[A-Za-z_][A-Za-z0-9_]*$/i
    *   - label:  Validate as a label

@@ -341,7 +341,13 @@ angular.module('openshiftConsole')
   // if resource is an object
   .filter('navigateResourceURL', function(Navigate) {
     return function(resource, kind, namespace) {
-      return Navigate.resourceURL(resource, kind, namespace);
+      return Navigate.resourceURL(resource, kind, namespace, "browse");
+    };
+  })
+  .filter('editResourceURL', function(Navigate) {
+    return function(resource, kind, namespace) {
+      var url = Navigate.resourceURL(resource, kind, namespace, "edit");
+      return url;
     };
   })
   .filter('join', function() {

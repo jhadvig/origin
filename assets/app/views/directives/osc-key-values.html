@@ -1,6 +1,6 @@
 <div ng-controller="KeyValuesController" class="labels">
     <div class="form-inline labels-edit" ng-show="editable">
-      <form class="edit-label" name="form" novalidate>
+      <ng-form class="edit-label" name="form" novalidate>
         <div class='form-group' ng-class="{'has-error': form.key.$error.oscKeyValid}">
           <input class="form-control"
                  type="text"
@@ -44,7 +44,7 @@
             </span>
           </span>
         </div>
-      </form>
+      </ng-form>
 
       <ul class="list-unstyled label-list">
         <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
