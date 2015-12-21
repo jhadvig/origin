@@ -22,6 +22,9 @@ angular.module("openshiftConsole")
   .controller("KeyValuesController", function($scope){
     var added = {};
     $scope.allowDelete = function(value){
+      if ($scope.preventEmpty && (Object.keys($scope.entries).length === 1)) {
+        return false;
+      }
       if($scope.deletePolicy === "never") {
         return false;
       }
@@ -32,25 +35,25 @@ angular.module("openshiftConsole")
     };
     $scope.addEntry = function() {
       if($scope.key && $scope.value){
-       var readonly = $scope.readonlyKeys.split(",");
-       if(readonly.indexOf($scope.key) !== -1){
-         return;
-       }
-       added[$scope.key] = "";
-       $scope.entries[$scope.key] = $scope.value;
-       $scope.key = null;
-       $scope.value = null;
-       $scope.form.$setPristine();
-       $scope.form.$setUntouched();
-       $scope.form.$setValidity();
+        var readonly = $scope.readonlyKeys.split(",");
+        if(readonly.indexOf($scope.key) !== -1){
+          return;
+        }
+        added[$scope.key] = "";
+        $scope.entries[$scope.key] = $scope.value;
+        $scope.key = null;
+        $scope.value = null;
+        $scope.form.$setPristine();
+        $scope.form.$setUntouched();
+        $scope.form.$setValidity();
       }
-     };
-     $scope.deleteEntry = function(key) {
-       if ($scope.entries[key]) {
-         delete $scope.entries[key];
-         delete added[key];
-       }
-     };
+    };
+    $scope.deleteEntry = function(key) {
+      if ($scope.entries[key]) {
+        delete $scope.entries[key];
+        delete added[key];
+      }
+    };
   })
   .directive("oscInputValidator", function(){
 
@@ -114,8 +117,9 @@ angular.module("openshiftConsole")
    * delimiter:   the value to use to separate key/value pairs when displaying
    *              (e.g. foo:bar).  Default: ":"
    * keyTitle:    The value to use as the key input's placeholder. Default: Name
+   * ValueTitle:  The value to use as the value input's placeholder. Default: Value
    * editable:    true if the intention is to display values only otherwise false (default)
-   * keyValidaor: The validator to use for validating keys
+   * keyValidator: The validator to use for validating keys
    *   - always: Any value is allowed (Default).
    *   - env:    Validate as an ENV var /^[A-Za-z_][A-Za-z0-9_]*$/i
    *   - label:  Validate as a label
@@ -131,6 +135,7 @@ angular.module("openshiftConsole")
       restrict: "E",
       scope: {
         keyTitle: "@",
+        valueTitle: "@",
         entries: "=",
         delimiter: "@",
         editable: "@",
@@ -139,7 +144,8 @@ angular.module("openshiftConsole")
         deletePolicy: "@",
         readonlyKeys: "@",
         keyValidationTooltip: "@",
-        valueValidationTooltip: "@"
+        valueValidationTooltip: "@",
+        preventEmpty: "=?",
       },
       controller: function($scope){
         this.scope = $scope;
@@ -148,6 +154,7 @@ angular.module("openshiftConsole")
       compile: function(element, attrs){
         if(!attrs.delimiter){attrs.delimiter = ":";}
         if(!attrs.keyTitle){attrs.keyTitle = "Name";}
+        if(!attrs.valueTitle){attrs.valueTitle = "Value";}
         if(!attrs.editable || attrs.editable === "true"){
           attrs.editable = true;
         }else{
