@@ -60,15 +60,24 @@ angular.module('openshiftConsole')
 
             var buildFrom = $filter('buildStrategy')($scope.bcEdit).from;
 
+            var pushTo = $filter('imageObjectRef')(buildConfig.spec.output.to, buildConfig.metadata.namespace)
+
             $scope.options = {
               pickedBuildFromType: buildFrom.kind,
               pickedBuildFromNamespace: buildFrom.namespace,
               pickedBuildFromImageStream: buildFrom.name.split(":")[0],
               pickedBuildFromImageStreamTag: buildFrom.name.split(":")[1],
-              pickedProjectImageStreams: {},
+
+              pickedPushToNamespace: buildConfig.spec.output.to.namespace || buildConfig.metadata.namespace,              
+              pickedPushToImageStream: buildConfig.spec.output.to.name.split(":")[0],
+              pickedPushToImageStreamTag: buildConfig.spec.output.to.name.split(":")[1],
+
+              // selectedBuildFromType: buildFrom.kind,
+              // selectedBuildFromNamespace: buildFrom.namespace,
+              // selectedBuildFromImageStream: buildFrom.name.split(":")[0],
+              // selectedBuildFromImageStreamTag: buildFrom.name.split(":")[1],
+
               pickedBuildFromDockerImage: "",
-              // imageStreamIndex: 0,
-              // imageStreamTagIndex: 0,
             };
 
 
@@ -76,7 +85,7 @@ angular.module('openshiftConsole')
             DataService.list("projects", $scope, function(projects) {
               var projects = projects.by("metadata.name");
               for (var name in projects) $scope.available.projects.push(name);
-              $scope.updateImageStreams($scope.options.pickedBuildFromNamespace, $scope.options.pickedBuildFromImageStream);
+              $scope.updateImageStreams($scope.options.pickedBuildFromNamespace, $scope.options.pickedBuildFromImageStream, $scope.options.pickedBuildFromImageStreamTag);
               console.log("asd")
             });
 
@@ -105,10 +114,12 @@ angular.module('openshiftConsole')
         );
       }));
 
-    $scope.updateImageStreams = function(ns, pickedImageStream) {
-      DataService.list("imagestreams", {namespace: ns}, function(imageStreams) {
+    $scope.updateImageStreams = function(project, imageStream, tag) {
+      $scope.options.pickedBuildFromImageStreamTag = tag;
+      $scope.options.pickedBuildFromImageStream = imageStream;
+      DataService.list("imagestreams", {namespace: project}, function(imageStreams) {
         $scope.available.imageStreams = [];
-        $scope.available.tags = [];
+        $scope.available.tags = {};
 
         var projectImageStreams = imageStreams.by("metadata.name");
         angular.forEach(projectImageStreams, function(value, key) {
@@ -118,16 +129,20 @@ angular.module('openshiftConsole')
             tagList.push(item["tag"]); 
           });
           $scope.available.tags[key] = tagList;
-          console.log("ads");
         });
-
-        // for(var imageStream in projectImageStreams) {
-
-        //   $scope.available.projects[ns] = {imageStream: {}};
-        // }
-        console.log("ads");
-        // projectImageStreams[$scope.options.pickedBuildFromImageStream]
       });
+      console.log($scope.options.pickedBuildFromNamespace);
+      console.log($scope.options.pickedBuildFromImageStream);
+      console.log($scope.options.pickedBuildFromImageStreamTag);
+      console.log("-----------");
+    }
+
+    $scope.updateTags = function(imageStream) {
+      $scope.options.pickedBuildFromImageStreamTag = "";
+      console.log($scope.options.pickedBuildFromNamespace);
+      console.log($scope.options.pickedBuildFromImageStream);
+      console.log($scope.options.pickedBuildFromImageStreamTag);
+      console.log("-----------");
     }
 
 

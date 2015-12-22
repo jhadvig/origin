@@ -81,21 +81,22 @@
                           <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
                           <select 
                             class="form-control multiselector select-builder-namespace"
-                            ng-model="available.projects[1]"
-                            ng-options="name for name in available.projects"
+                            ng-model="options.pickedBuildFromNamespace"
+                            ng-options="name for name in available.projects track by name"
                             ng-change="updateImageStreams(options.pickedBuildFromNamespace)">
                           </select>
                           /
                           <select
                             class="form-control multiselector select-builder-name"
-                            ng-model="options.pickedBuildFromImageStreamTag"
-                            ng-options="name for name in available.imageStreams">
+                            ng-model="options.pickedBuildFromImageStream"
+                            ng-options="name as name for name in available.imageStreams track by name"
+                            ng-change="updateTags(options.pickedBuildFromImageStream)">
                           </select>
                           :
                           <select
                             class="form-control multiselector select-builder-tag"
-                            ng-model="projectImageStreamTags[options.imageStreamTagIndex]"
-                            ng-options="name for name in available.tags[options.pickedBuildFromImageStreamTag]">
+                            ng-model="options.pickedBuildFromImageStreamTag"
+                            ng-options="name as name for name in available.tags[options.pickedBuildFromImageStream] track by name">
                           </select>
 <!--                           <span class="help action-inline">
                             <a href data-toggle="tooltip" data-placement="right" data-original-title="This image can build.">
@@ -105,19 +106,50 @@
                         </div>
                       </div>
                       <div ng-if="options.pickedBuildFromType=='DockerImage'" class="form-group">
-                        <div ng-show="bcEdit.spec.source.type == 'Git'">
-                          <label for="sourceRef">Docker Image Link</label>
-                          <div>
-                            <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
-                            <input class="form-control"
-                              id="dockerImageLink"
-                              name="dockerImageLink"
-                              type="text"
-                              ng-model="options.pickedBuildFromDockerImage"
-                              aria-describedby="from_source_help">
-                          </div>
+                        <label for="sourceRef">Docker Image Link</label>
+                        <div>
+                          <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
+                          <input class="form-control"
+                            id="dockerImageLink"
+                            name="dockerImageLink"
+                            type="text"
+                            ng-model="options.pickedBuildFromDockerImage"
+                            placeholder="example: openshift/ruby-20-centos7:latest"
+                            aria-describedby="from_source_help">
                         </div>
                       </div>
+
+
+                      <div class="form-group">
+                        <label for="sourceRef">Output to</label>
+                        <div class="output-to-selects multiselectors">
+                          <select 
+                            class="form-control multiselector select-builder-namespace"
+                            ng-model="options.pickedPushToNamespace"
+                            ng-options="name for name in available.projects track by name"
+                            ng-change="updateImageStreams(options.pickedPushToNamespace)">
+                          </select>
+                          /
+                          <select
+                            class="form-control multiselector select-builder-name"
+                            ng-model="options.pickedPushToImageStream"
+                            ng-options="name as name for name in available.imageStreams track by name"
+                            ng-change="updateTags(options.pickedPushToImageStream)">
+                          </select>
+                          :
+                          <select
+                            class="form-control multiselector select-builder-tag"
+                            ng-model="options.pickedPushToImageStreamTag"
+                            ng-options="name as name for name in available.tags[options.pickedPushToImageStreamTag] track by name">
+                          </select>
+<!--                           <span class="help action-inline">
+                            <a href data-toggle="tooltip" data-placement="right" data-original-title="This image can build.">
+                            <i class="pficon pficon-help"></i>
+                            </a>
+                          </span> -->
+                        </div>
+                      </div>
+
 
                     </dl>
                     <div ng-if="(buildConfig | buildStrategy).env">
