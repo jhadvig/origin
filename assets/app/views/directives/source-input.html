@@ -1,0 +1,20 @@
+<div class="form-group">
+  <div ng-show="comparedType == 'Git'">
+    <label for="sourceUrl">{{label}}</label>
+    <div>
+      <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
+      <input class="form-control"
+        id="sourceUrl"
+        name="model"
+        ng-model="model"
+        type="text"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        required>
+    </div>
+  </div>
+  <div>
+    <span class="text-warning" ng-if="form.sourceUrl.$dirty && !sourceURLPattern.test(updatedBuildConfig.spec.source.git.uri)">Git repository should be a URL.</span>
+  </div>
+</div>

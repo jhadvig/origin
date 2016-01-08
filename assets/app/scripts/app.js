@@ -124,7 +124,7 @@ angular
         controller: 'BuildConfigController'
       })
       .when('/project/:project/edit/builds/:buildconfig', {
-        templateUrl: 'views/browse/edit-build-config.html',
+        templateUrl: 'views/edit/build-config.html',
         controller: 'EditBuildConfigController'
       })
       .when('/project/:project/browse/builds/:buildconfig/:build', {

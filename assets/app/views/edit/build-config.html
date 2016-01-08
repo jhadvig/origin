@@ -3,7 +3,7 @@
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
-    <div class="tile" ng-if="buildConfig">
+    <div class="tile" ng-show="buildConfig">
 
       <div>
         <h1>
@@ -18,27 +18,12 @@
                   <div class="section">
                     <h3>Configuration</h3>
                       <dl class="dl-horizontal left">
-                        <div class="form-group">
-                          <div ng-show="updatedBuildConfig.spec.source.type == 'Git'">
-                            <!-- <div class="kar">{{form}}</div> -->
-                            <label for="sourceUrl">Git Repository URL</label>
-                            <div>
-                              <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
-                              <input class="form-control"
-                                id="sourceUrl"
-                                name="sourceUrl"
-                                ng-model="updatedBuildConfig.spec.source.git.uri"
-                                type="text"
-                                autocorrect="off"
-                                autocapitalize="off"
-                                spellcheck="false"
-                                required>
-                            </div>
-                          </div>
-                          <div>
-                            <span class="text-warning" ng-if="form.sourceUrl.$dirty && !sourceURLPattern.test(updatedBuildConfig.spec.source.git.uri)">Git repository should be a URL.</span>
-                          </div>
-                        </div>
+
+                      <source-input 
+                        model="updatedBuildConfig.spec.source.git.uri"
+                        compared-type="updatedBuildConfig.spec.source.type"
+                        label="Git Repository URL">
+                      </source-input>
 
                         <div class="form-group">
                           <div ng-if="updatedBuildConfig.spec.source.type == 'Git'">
