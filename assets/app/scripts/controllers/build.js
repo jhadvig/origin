@@ -10,6 +10,7 @@ angular.module('openshiftConsole')
   .controller('BuildController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter) {
     $scope.projectName = $routeParams.project;
     $scope.build = null;
+    $scope.buildConfig = null;
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
@@ -76,6 +77,15 @@ angular.module('openshiftConsole')
               // fetch the log, BUT ALSO indicate this somehow in UI
               $scope.logCanRun = !(_.includes(['New', 'Pending', 'Error'], build.status.phase));
             }));
+            watches.push(DataService.watchObject("buildconfigs", $routeParams.buildconfig, context, function(buildConfig, action) {
+              if (action === "DELETED") {
+                $scope.alerts["deleted"] = {
+                  type: "warning",
+                  message: "Build configuration " + $scope.buildConfigName + " has been deleted."
+                };
+              }
+              $scope.buildConfig = buildConfig;
+            }));
           },
           // failure
           function(e) {
@@ -123,6 +133,14 @@ angular.module('openshiftConsole')
 
           $scope.canBuild = !hashSize($scope.buildConfigBuildsInProgress[buildConfigName]);
         }));
+
+        $scope.isPaused = function() {
+          return BuildsService.isPaused($scope.buildConfig);
+        };
+
+        $scope.canBuild = function() {
+          return BuildsService.canBuild($scope.buildConfig, $scope.buildConfigBuildsInProgress);
+        };
 
         $scope.cancelBuild = function() {
           BuildsService.cancelBuild($scope.build, $scope.buildConfigName, context, $scope);

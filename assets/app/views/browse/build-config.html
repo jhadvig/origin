@@ -10,6 +10,13 @@
             <div ng-if="!loaded">Loading...</div>
             <h1>
               {{buildConfigName}}
+              <span class="pficon pficon-warning-triangle-o"
+                    ng-if="isPaused()"
+                    aria-hidden="true"
+                    data-toggle="tooltip"
+                    data-placement="bottom"
+                    data-original-title="Buildding from build configuration {{buildConfig.metadata.name}} has been paused.">
+              </span>
               <div class="pull-right dropdown" ng-if="buildConfig">
                 <!-- Primary Actions -->
                 <button
