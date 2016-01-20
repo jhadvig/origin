@@ -7,9 +7,10 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter) {
+  .controller('BuildController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, BuildConfigsService, $filter) {
     $scope.projectName = $routeParams.project;
     $scope.build = null;
+    $scope.buildConfig = null;
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
@@ -70,6 +71,15 @@ angular.module('openshiftConsole')
               }
               $scope.build = build;
             }));
+            watches.push(DataService.watchObject("buildconfigs", $routeParams.buildconfig, context, function(buildConfig, action) {
+              if (action === "DELETED") {
+                $scope.alerts["deleted"] = {
+                  type: "warning",
+                  message: "This build configuration has been deleted."
+                };
+              }
+              $scope.buildConfig = buildConfig;
+            }));
           },
           // failure
           function(e) {
@@ -114,6 +124,11 @@ angular.module('openshiftConsole')
             }
           }
         }));
+
+        $scope.canBuild = function() {
+          return BuildConfigsService.canBuild($scope);
+        };
+
         $scope.startBuild = function(buildConfigName) {
           BuildsService.startBuild(buildConfigName, context, $scope);
         };

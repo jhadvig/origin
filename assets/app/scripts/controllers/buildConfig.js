@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, $filter, LabelFilter) {
+  .controller('BuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, BuildsService, BuildConfigsService, $filter, LabelFilter) {
     $scope.projectName = $routeParams.project;
     $scope.buildConfig = null;
     $scope.labelSuggestions = {};
@@ -129,22 +129,8 @@ angular.module('openshiftConsole')
           });
         });
 
-        var hashSize = $filter('hashSize');
         $scope.canBuild = function() {
-          if (!$scope.buildConfig) {
-            return false;
-          }
-
-          if ($scope.buildConfig.metadata.deletionTimestamp) {
-            return false;
-          }
-
-          if ($scope.buildConfigBuildsInProgress &&
-              hashSize($scope.buildConfigBuildsInProgress[$scope.buildConfig.metadata.name]) > 0) {
-            return false;
-          }
-
-          return true;
+          return BuildConfigsService.canBuild($scope);
         };
 
         $scope.startBuild = function() {
