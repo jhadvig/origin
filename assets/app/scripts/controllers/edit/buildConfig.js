@@ -205,6 +205,10 @@ angular.module('openshiftConsole')
               };
             }
 
+            if ($scope.sources.binary) {
+              $scope.options.binaryAsFile = ($scope.buildConfig.spec.source.binary.asFile) ? $scope.buildConfig.spec.source.binary.asFile : "";
+            }
+
             if ($scope.strategyType === "Docker") {
               $scope.options.noCache = !!$scope.buildConfig.spec.strategy.dockerStrategy.noCache;
               // Only DockerStrategy can have empty Strategy object and therefore it's from object
@@ -451,6 +455,13 @@ angular.module('openshiftConsole')
       $filter('buildStrategy')($scope.updatedBuildConfig).forcePull = $scope.options.forcePull;
       if ($scope.strategyType === "Docker") {
         $filter('buildStrategy')($scope.updatedBuildConfig).noCache = $scope.options.noCache;
+      }
+
+      // If binarySource check if the AsFile string is set and construct the object accordingly.
+      if ($scope.options.binaryAsFile !== "") {
+        $scope.updatedBuildConfig.spec.source.binary.asFile = $scope.options.binaryAsFile;
+      } else {
+        $scope.updatedBuildConfig.spec.source.binary = {};
       }
 
       // If imageSource is present update From and Paths.
