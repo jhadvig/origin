@@ -18,8 +18,8 @@
                   <div class="section">
                     <h3>Source Configuration</h3>
                     <dl class="dl-horizontal left">
-                      <div class="form-groups">
-                        <div class="form-group" ng-if="sources.git">
+                      <div class="form-groups" ng-if="sources.git">
+                        <div class="form-group">
                           <label for="sourceUrl">Source Repository URL</label>
                           <div>
                             <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
@@ -38,7 +38,7 @@
                           </div>
                         </div>
 
-                        <div class="form-group editor" ng-if="sources.git">
+                        <div class="form-group editor">
                           <label for="sourceRef">Source Repository Ref</label>
                           <div>
                             <input class="form-control"
@@ -54,25 +54,23 @@
                         </div>
 
                         <div class="form-group">
-                          <div ng-if="sources.git">
-                            <label for="sourceContextDir">Source Context Dir</label>
-                            <div>
-                              <input class="form-control"
-                                id="sourceContextDir"
-                                name="sourceContextDir"
-                                type="text"
-                                ng-model="updatedBuildConfig.spec.source.contextDir"
-                                placeholder="/"
-                                autocorrect="off"
-                                autocapitalize="off"
-                                spellcheck="false">
-                            </div>
+                          <label for="sourceContextDir">Source Context Dir</label>
+                          <div>
+                            <input class="form-control"
+                              id="sourceContextDir"
+                              name="sourceContextDir"
+                              type="text"
+                              ng-model="updatedBuildConfig.spec.source.contextDir"
+                              placeholder="/"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false">
                           </div>
                         </div>
                       </div>
 
-                      <div class="form-groups">
-                        <div class="form-group" ng-if="sources.dockerfile">
+                      <div class="form-groups" ng-if="sources.dockerfile">
+                        <div class="form-group">
                         <label for="buildFrom">Dockerfile</label>
                           <div ui-ace="{
                             mode: 'dockerfile',
@@ -112,6 +110,26 @@
                               </a>
                             </span>
                           </label>
+                        </div>
+                      </div>
+
+                      <div class="form-groups" ng-if="sources.binary && updatedBuildConfig.spec.source">
+                        <div class="form-group">
+                          <label for="binaryAsBuild">Binary Input As File<span class="help action-inline">
+                            <a href>
+                            <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" aria-hidden="true" data-original-title="Indicates that the provided binary input should be considered a single file within the build input. For example, specifying 'webapp.war' would place the provided binary as '/webapp.war' for the builder. If left empty, the Docker and Source build strategies assume this file is a zip, tar, or tar.gz file and extract it as the source. The custom strategy receives this binary as standard input. This filename may not contain slashes or be '..' or '.'."></i>
+                            </a>
+                          </label>
+                          <div>
+                            <input class="form-control"
+                              id="binaryAsBuild"
+                              name="binaryAsBuild"
+                              type="text"
+                              ng-model="options.binaryAsFile"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false">
+                          </div>
                         </div>
                       </div>
 
@@ -416,7 +434,7 @@
                     <h3>Triggers</h3>
                     <dl class="dl-horizontal left">
                       <div class="form-groups">
-                        <div class="checkbox">
+                        <div class="checkbox" ng-if="sources.git" >
                           <label>
                             <input type="checkbox" ng-model="pickedTriggers['webhook']"/>
                             Enable the webhook build trigger
