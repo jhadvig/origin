@@ -115,10 +115,13 @@
 
                       <div class="form-groups" ng-if="sources.binary && updatedBuildConfig.spec.source">
                         <div class="form-group">
-                          <label for="binaryAsBuild">Binary Input As File<span class="help action-inline">
-                            <a href>
-                            <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" aria-hidden="true" data-original-title="Indicates that the provided binary input should be considered a single file within the build input. For example, specifying 'webapp.war' would place the provided binary as '/webapp.war' for the builder. If left empty, the Docker and Source build strategies assume this file is a zip, tar, or tar.gz file and extract it as the source. The custom strategy receives this binary as standard input. This filename may not contain slashes or be '..' or '.'."></i>
-                            </a>
+                          <label for="binaryAsBuild">
+                            Binary Input As File
+                            <span class="help action-inline">
+                              <a href>
+                                <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" aria-hidden="true" data-original-title="Indicates that the provided binary input should be considered a single file within the build input. For example, specifying 'webapp.war' would place the provided binary as '/webapp.war' for the builder. If left empty, the Docker and Source build strategies assume this file is a zip, tar, or tar.gz file and extract it as the source. The custom strategy receives this binary as standard input. This filename may not contain slashes or be '..' or '.'."></i>
+                              </a>
+                            </span>
                           </label>
                           <div>
                             <input class="form-control"
@@ -148,12 +151,17 @@
                           <div class="col-lg-4">
                            <div class="label-with-selector">
                               <label class="multiselector-label">Namespace</label>
-                              <select 
+                              <select
+                                name="imageSourceNamespace"
                                 class="form-control multiselector select-imagesource-namespace"
                                 ng-model="options.pickedImageSourceNamespace"
                                 ng-options="name for name in imageSourceBuildFrom.projects track by name"
-                                ng-change="updateImageSourceImageStreams(options.pickedImageSourceNamespace, true)">
+                                ng-change="updateImageSourceImageStreams(options.pickedImageSourceNamespace, true)"
+                                required>
                               </select>
+                              <div>
+                                <span class="text-warning" ng-if="form.imageSourceNamespace.$error.required">Select a namespace.</span>
+                              </div>
                             </div>
                           </div>
 
@@ -161,39 +169,32 @@
                             <div class="label-with-selector">
                               <label class="multiselector-label">Image Stream</label>
                               <select
+                                name="imageSourceImageStream"
                                 class="form-control multiselector select-imagesource-name"
                                 ng-model="options.pickedImageSourceImageStream"
                                 ng-options="name as name for name in imageSourceBuildFrom.imageStreams track by name"
-                                ng-change="clearSelectedImageSourceTag()">
+                                ng-change="clearSelectedImageSourceTag()"
+                                required>
                               </select>
+                              <div>
+                                <span class="text-danger" ng-if="imageSourceBuildFrom.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="imageSourceBuildFrom.imageStreams.length !== 0 && !imageSourceBuildFrom.imageStreams.contains(options.pickedImageSourceImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedImageSourceImageStream}}'</b>.</span>
+                              </div>
                             </div>
                           </div>
 
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
-                              <div ng-show="!imageSourceTagInput">
-                                <select
-                                  class="form-control multiselector select-imagesource-tag"
-                                  ng-model="options.pickedImageSourceImageStreamTag"
-                                  ng-options="name as name for name in imageSourceBuildFrom.tags[options.pickedImageSourceImageStream] track by name"
-                                  ng-change="checkImageSourceTag()"
-                                  required>
-                                </select>
-                              </div>
-                              <div class="inner-addon" ng-show="imageSourceTagInput">
-                                <span class="fa fa-close"
-                                      ng-click="switchInput('imageSource');"
-                                      ng-hide="imageSourceBuildFrom.tags[options.pickedImageSourceImageStream].length === 1"
-                                      aria-hidden="true"
-                                      style="position: absolute; top: 33px; right: 25px; cursor: pointer;"></span>
-                                <input class="form-control multiselector select-output-tag"
-                                  type="text"
-                                  ng-model="options.pickedImageSourceImageStreamTag"
-                                  autocorrect="off"
-                                  autocapitalize="off"
-                                  spellcheck="false"
-                                  required>
+                              <select
+                                name="imageSourceTag"
+                                class="form-control multiselector select-imagesource-tag"
+                                ng-model="options.pickedImageSourceImageStreamTag"
+                                ng-options="name as name for name in imageSourceBuildFrom.tags[options.pickedImageSourceImageStream] track by name"
+                                required>
+                              </select>
+                              <div>
+                                <span class="text-danger" ng-if="imageSourceBuildFrom.tags[options.pickedImageSourceImageStream].length === 0">Selected Image Stream doesn't contain any tagged image to build from.</span>
                               </div>
                             </div>
                           </div>
@@ -257,7 +258,8 @@
                                 class="form-control multiselector select-builder-namespace"
                                 ng-model="options.pickedBuildFromNamespace"
                                 ng-options="name for name in buildFrom.projects track by name"
-                                ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)">
+                                ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)"
+                                required>
                               </select>
                             </div>
                           </div>
@@ -268,36 +270,27 @@
                                 class="form-control multiselector select-builder-name"
                                 ng-model="options.pickedBuildFromImageStream"
                                 ng-options="name as name for name in buildFrom.imageStreams track by name"
-                                ng-change="clearSelectedBuilderTag()">
+                                ng-change="clearSelectedBuilderTag()"
+                                required>
                               </select>
+                              <div>
+                                <span class="text-danger" ng-if="buildFrom.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="buildFrom.imageStreams.length !== 0 && !buildFrom.imageStreams.contains(options.pickedBuildFromImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedBuildFromImageStream}}'</b>.</span>
+                              </div>
                             </div>
                           </div>
 
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
-                              <div ng-show="!builderTagInput">
-                                <select
-                                  class="form-control multiselector select-builder-tag"
-                                  ng-model="options.pickedBuildFromImageStreamTag"
-                                  ng-options="name as name for name in buildFrom.tags[options.pickedBuildFromImageStream] track by name"
-                                  ng-change="checkBuilderTag()"
-                                  required>
-                                </select>
-                              </div>
-                              <div class="inner-addon" ng-show="builderTagInput">
-                                <span class="fa fa-close"
-                                      ng-click="switchInput('builder');"
-                                      ng-hide="buildFrom.tags[options.pickedBuildFromImageStream].length === 1"
-                                      aria-hidden="true"
-                                      style="position: absolute; top: 33px; right: 25px; cursor: pointer;"></span>
-                                <input class="form-control multiselector select-output-tag"
-                                  type="text"
-                                  ng-model="options.pickedBuildFromImageStreamTag"
-                                  autocorrect="off"
-                                  autocapitalize="off"
-                                  spellcheck="false"
-                                  required>
+                              <select
+                                class="form-control multiselector select-builder-tag"
+                                ng-model="options.pickedBuildFromImageStreamTag"
+                                ng-options="name as name for name in buildFrom.tags[options.pickedBuildFromImageStream] track by name"
+                                required>
+                              </select>
+                              <div>
+                                <span class="text-danger" ng-if="buildFrom.tags[options.pickedBuildFromImageStream].length === 0">Selected Image Stream doesn't contain any tagged image to build from.</span>
                               </div>
                             </div>
                           </div>
@@ -358,36 +351,29 @@
                                 ng-options="name as name for name in pushTo.imageStreams track by name"
                                 ng-change="clearSelectedOutputTag()">
                               </select>
+                              <div>
+                                <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="pushTo.imageStreams.length !== 0 && !pushTo.imageStreams.contains(options.pickedPushToImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span>
+                              </div>
                             </div>
                           </div>
 
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
-                              <div ng-show="!outputTagInput">
-                                <select
-                                  class="form-control multiselector select-output-tag"
-                                  ng-model="options.pickedPushToImageStreamTag"
-                                  ng-options="name as name for name in pushTo.tags[options.pickedPushToImageStream] track by name"
-                                  ng-change="checkOutputTag()"
-                                  required>
-                                </select>
+                              <div>
+                              <input class="form-control multiselector select-output-tag"
+                                id="FromTypeLink"
+                                name="FromTypeLink"
+                                type="text"
+                                ng-model="options.pickedPushToImageStreamTag"
+                                autocorrect="off"
+                                autocapitalize="off"
+                                spellcheck="false"
+                                required>
                               </div>
-                              <div class="inner-addon" ng-show="outputTagInput">
-                                <span class="fa fa-close" 
-                                      ng-click="switchInput('output');"
-                                      aria-hidden="true"
-                                      ng-hide="pushTo.tags[options.pickedPushToImageStream].length === 1"
-                                      style="position: absolute; top: 33px; right: 25px; cursor: pointer;"></span>
-                                <input class="form-control multiselector select-output-tag"
-                                  id="FromTypeLink"
-                                  name="FromTypeLink"
-                                  type="text"
-                                  ng-model="options.pickedPushToImageStreamTag"
-                                  autocorrect="off"
-                                  autocapitalize="off"
-                                  spellcheck="false"
-                                  required>
+                              <div>
+                                <span class="text-warning" ng-if="pushTo.tags[options.pickedPushToImageStream].contains(options.pickedPushToImageStreamTag)">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
                               </div>
                             </div>
                           </div>
@@ -448,7 +434,7 @@
                         </div>
                         <div class="checkbox">
                           <label>
-                            <input type="checkbox" ng-model="pickedTriggers['imageChange']"/>
+                            <input type="checkbox" ng-model="pickedTriggers['imageChange']" ng-disabled="options.pickedBuildFromType === 'None'"/>
                             Automatically build a new image when the builder image changes
                             <span class="help action-inline">
                               <a href>
