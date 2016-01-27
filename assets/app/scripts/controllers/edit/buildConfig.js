@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('EditBuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, $filter, ApplicationGenerator, Navigate, $location, AlertMessageService, SOURCE_URL_PATTERN) {
+  .controller('EditBuildConfigController', function ($scope, $routeParams, DataService, ProjectsService, BuildConfigsService, $filter, ApplicationGenerator, Navigate, $location, AlertMessageService, SOURCE_URL_PATTERN) {
 
     $scope.projectName = $routeParams.project;
     $scope.buildConfig = null;
@@ -52,6 +52,11 @@ angular.module('openshiftConsole')
         title: "Edit"
       }
     ];
+    $scope.buildFrom1 = {
+      projects: [],
+      imageStreams: [],
+      tags: {},
+    };
     $scope.buildFrom = {
       projects: [],
       imageStreams: [],
@@ -73,6 +78,47 @@ angular.module('openshiftConsole')
       "webhook": false,
       "imageChange": false,
       "configChange": false
+    };
+
+    $scope.myOptions = [];
+
+    $scope.buildFromTest = [];
+
+    $scope.namespaceConfig = {
+      create: true,
+      valueField: 'title',
+      labelField: 'title',
+      delimiter: '|',
+      placeholder: 'Pick Namespace',
+      onChange: function(item){
+        console.log("ns");
+        console.log(item);
+      },
+      maxItems: 1
+    };
+
+    $scope.imageStreamConfig = {
+      create: true,
+      valueField: 'title',
+      labelField: 'title',
+      delimiter: '|',
+      placeholder: 'Pick Image Stream',
+      onChange: function(item){
+        console.log(item);
+      },
+      maxItems: 1
+    };
+
+    $scope.tagConfig = {
+      create: true,
+      valueField: 'title',
+      labelField: 'title',
+      delimiter: '|',
+      placeholder: 'Pick Tag',
+      onChange: function(item){
+        console.log(item);
+      },
+      maxItems: 1
     };
 
     AlertMessageService.getAlerts().forEach(function(alert) {
@@ -216,13 +262,26 @@ angular.module('openshiftConsole')
               $scope.buildFromTypes.push({"id": "None", "title": "--- None ---"});
             }
 
-            $scope.buildFrom.projects = ["openshift"];
+            // $scope.buildFrom.projects = ["openshift"];
+            $scope.buildFrom1.projects = [{title: "openshift"}];
+
+            
             DataService.list("projects", $scope, function(projects) {
               var projects = projects.by("metadata.name");
               for (var name in projects) {
                 $scope.buildFrom.projects.push(name);
                 $scope.pushTo.projects.push(name);
+
+                $scope.buildFrom1.projects.push({title: name});
               }
+
+              $scope.pushTo.projects.forEach(function(project, index) {
+                $scope.buildFromTest.push({
+                  id: index,
+                  title: project
+                });
+              });
+              $scope.myModelTest = 1;
 
               // If builder or output image reference kind is DockerImage select the first imageSteam and imageStreamTag
               // in the picker, so when the user changes the reference kind to ImageStreamTag the picker is filled with
@@ -333,6 +392,8 @@ angular.module('openshiftConsole')
                   tagList.push(item["tag"]);
                 });
               }
+              
+
               $scope.buildFrom.imageStreams.push(name);
               $scope.buildFrom.tags[name] = tagList;
               // If ImageStream doesn't have any tags, set tag to empty string, so the user has to pick from a existing Tags.
@@ -349,6 +410,9 @@ angular.module('openshiftConsole')
               $scope.options.pickedBuildFromImageStream = $scope.buildFrom.imageStreams[0];
               $scope.clearSelectedBuilderTag();
             }
+
+            $scope.myOptions = BuildConfigsService.arrayToOptions($scope.buildFrom.imageStreams);
+            $scope.myModel = $scope.options.pickedPushToImageStream;
           } else {
             $scope.options.pickedBuildFromImageStream = "";
             $scope.options.pickedBuildFromImageStreamTag = "";
