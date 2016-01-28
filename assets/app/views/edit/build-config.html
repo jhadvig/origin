@@ -342,8 +342,8 @@
                               <label class="multiselector-label">Image Stream</label>
                               <selectize config='imageStreamConfig' options='pushTo.imageStreams' ng-model="options.pickedPushToImageStream"></selectize>
                               <div>
-                                <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
-                                <span class="text-danger" ng-if="pushTo.imageStreams.length !== 0 && !pushTo.imageStreams.contains(options.pickedPushToImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span>
+                                <!-- <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span> -->
+                                <!-- <span class="text-danger" ng-if="pushTo.imageStreams.length !== 0 && !pushTo.imageStreams.contains(options.pickedPushToImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span> -->
                               </div>
                             </div>
                           </div>
@@ -351,7 +351,7 @@
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
-                              <selectize config='tagConfig' options='pushTo.tags[options.pickedPushToImageStream]' ng-model="options.pickedPushToImageStreamTag"></selectize>
+                              <selectize config='tagConfig' options='pushTo.tags' ng-model="options.pickedPushToImageStreamTag" ng-disabled="options.pickedPushToImageStreamTag === ''" required></selectize>
                               <div>
                                 <span class="text-warning" ng-if="pushTo.tagExists">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
                               </div>

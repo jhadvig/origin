@@ -61,7 +61,8 @@ angular.module('openshiftConsole')
     $scope.pushTo = {
       projects: [],
       imageStreams: [],
-      tags: {},
+      tags: [],
+      tagMap: {},
       tagExists: false
     };
 
@@ -87,6 +88,7 @@ angular.module('openshiftConsole')
       sortField: 'id',
       placeholder: 'Pick Namespace',
       onChange: function(namespace){
+        console.log(namespace + "<------  NS CHANGE");
         if (namespace) {
           $scope.updateOutputImageStreams(namespace, true);
         }
@@ -95,18 +97,22 @@ angular.module('openshiftConsole')
     };
 
     $scope.imageStreamConfig = {
-      create: false,
+      create: true,
       valueField: 'id',
       labelField: 'id',
       sortField: 'id',
       placeholder: 'Pick Image Stream',
       onDelete: function(values) {
-        console.log(" >>>>>>>>>>> " + values);
+        $scope.pushTo.tags = [];
+        $scope.options.pickedPushToImageStreamTag = "";
+        console.log(" >>>>>>>>>>> OLD " + values);
+        console.log(" >>>>>>>>>>> NEW " + $scope.options.pickedPushToImageStreamTag);
       },
       // onType: function(str) {
       //   console.log(" ----------------------------- " + str);
       // },
       onChange: function(imageStream){
+        console.log(imageStream + "<------  IS CHANGE");
         if (imageStream) {
           $scope.updateOutputTag(imageStream);
         } else {
@@ -123,9 +129,8 @@ angular.module('openshiftConsole')
       sortField: 'id',
       placeholder: 'Pick Tag',
       onChange: function(tag){
-        if (imageStream) {
-          $scope.checkOutputTagExists(tag);
-        }
+        console.log(tag + "<------  TAG CHANGE");
+        $scope.pushTo.tagExists = $scope.checkOutputTagExists(tag);
       },
       maxItems: 1
     };
@@ -429,7 +434,8 @@ angular.module('openshiftConsole')
     $scope.updateOutputImageStreams = function(projectName, selectFirstOption) {
       DataService.list("imagestreams", {namespace: projectName}, function(imageStreams) {
         $scope.pushTo.imageStreams = [];
-        $scope.pushTo.tags = {};
+        $scope.pushTo.tagMap = {};
+        $scope.pushTo.tags = [];
         var projectImageStreams = imageStreams.by("metadata.name");
         if (!_.isEmpty(projectImageStreams)) {
           angular.forEach(projectImageStreams, function(imageStream, name) {
@@ -447,13 +453,13 @@ angular.module('openshiftConsole')
                 tagList.push({id: $scope.options.pickedPushToImageStreamTag, live: false})
               }
             }
-            $scope.pushTo.tags[name] = tagList;
+            $scope.pushTo.tagMap[name] = tagList;
           });
 
           if (selectFirstOption) {
             $scope.options.pickedPushToImageStream = $scope.pushTo.imageStreams[0].id;
-            $scope.updateOutputTag($scope.options.pickedPushToImageStream);
-          } 
+          }
+          $scope.updateOutputTag($scope.options.pickedPushToImageStream);
         } else {
           $scope.options.pickedPushToImageStream = "";
           $scope.options.pickedPushToImageStreamTag = "";
@@ -462,21 +468,29 @@ angular.module('openshiftConsole')
     }
 
     $scope.updateOutputTag = function(imageStreamName) {
-      var tags = $scope.pushTo.tags[imageStreamName];
-      if ( _.find(tags, function(tag) { return tag.id !== "latest" })) {
-        $scope.options.pickedPushToImageStreamTag = tags[0].id;
+      if ($scope.pushTo.tagMap[imageStreamName]) {
+        $scope.pushTo.tags = $scope.pushTo.tagMap[imageStreamName];
+        // CHECK IF $scope.pushTo.tags ARE EMPTY !!!
+        if ( _.find($scope.pushTo.tags, function(tag) { return tag.id !== "latest" })) {
+          $scope.options.pickedPushToImageStreamTag = $scope.pushTo.tags[0].id;
+        }
+        $scope.options.pickedPushToImageStreamTag = "latest";
+        console.log("-->" + imageStreamName);
+        console.log("--->" + $scope.options.pickedPushToImageStreamTag);
+        $scope.pushTo.tagExists = $scope.checkOutputTagExists($scope.options.pickedPushToImageStreamTag);
+      } else {
+        $scope.pushTo.tags = [];
+        $scope.options.pickedPushToImageStreamTag = "latest";
       }
-      $scope.options.pickedPushToImageStreamTag = "latest";
-      console.log("-->" + imageStreamName);
-      console.log("--->" + $scope.options.pickedPushToImageStreamTag);
-      $scope.checkOutputTagExists($scope.options.pickedPushToImageStreamTag);
+
     }
 
     $scope.checkOutputTagExists = function(tagName) {
-      var tags = $scope.pushTo.tags[$scope.options.pickedPushToImageStream];
-      tag = _.find(tags, function(tag) { return tag.id === tagName })
-       $scope.pushTo.tagExists   .live;
-      console.log($scope.pushTo.tagExists);
+      var tag = _.find($scope.pushTo.tags, function(tag) { return tag.id === tagName });
+      if (tag) {
+        return tag.live;
+      } 
+      return false;
     }
 
     $scope.save = function() {
