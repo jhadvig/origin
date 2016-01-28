@@ -332,25 +332,15 @@
 
                         <div class="row form-group" ng-if="options.pickedPushToType=='ImageStreamTag'">
                           <div class="col-lg-4">
-                           <div class="label-with-selector">
+                            <div class="label-with-selector">
                               <label class="multiselector-label">Namespace</label>
-                              <select 
-                                class="form-control multiselector select-output-namespace"
-                                ng-model="options.pickedPushToNamespace"
-                                ng-options="name for name in pushTo.projects track by name"
-                                ng-change="updateOutputImageStreams(options.pickedPushToNamespace, true)">
-                              </select>
+                              <selectize config='namespaceConfig' options='pushTo.projects' ng-model="options.pickedPushToNamespace"></selectize>
                             </div>
                           </div>
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Image Stream</label>
-                              <select
-                                class="form-control multiselector select-output-name"
-                                ng-model="options.pickedPushToImageStream"
-                                ng-options="name as name for name in pushTo.imageStreams track by name"
-                                ng-change="clearSelectedOutputTag()">
-                              </select>
+                              <selectize config='imageStreamConfig' options='pushTo.imageStreams' ng-model="options.pickedPushToImageStream"></selectize>
                               <div>
                                 <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
                                 <span class="text-danger" ng-if="pushTo.imageStreams.length !== 0 && !pushTo.imageStreams.contains(options.pickedPushToImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span>
@@ -361,19 +351,9 @@
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
+                              <selectize config='tagConfig' options='pushTo.tags[options.pickedPushToImageStream]' ng-model="options.pickedPushToImageStreamTag"></selectize>
                               <div>
-                              <input class="form-control multiselector select-output-tag"
-                                id="FromTypeLink"
-                                name="FromTypeLink"
-                                type="text"
-                                ng-model="options.pickedPushToImageStreamTag"
-                                autocorrect="off"
-                                autocapitalize="off"
-                                spellcheck="false"
-                                required>
-                              </div>
-                              <div>
-                                <span class="text-warning" ng-if="pushTo.tags[options.pickedPushToImageStream].contains(options.pickedPushToImageStreamTag)">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
+                                <span class="text-warning" ng-if="pushTo.tagExists">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
                               </div>
                             </div>
                           </div>
@@ -453,11 +433,9 @@
                         </div>
                       </div>
                     </dl>
-                  </div>
-
-                  <selectize config='namespaceConfig' options='buildFrom1.projects' ng-model="options.pickedPushToNamespace"></selectize>
-                  <selectize config='imageStreamConfig' options='myOptions' ng-model="options.pickedPushToImageStream"></selectize>
-                  <selectize config='tagConfig' options='myOptions' ng-model="pickedPushToImageStreamTag"></selectize>
+                  </div>                 
+                  
+                  
 
 <!--                   <select
                     class="form-control multiselector select-output-name testik"
@@ -485,3 +463,4 @@
     </div>
   </project-page>
 </div>
+

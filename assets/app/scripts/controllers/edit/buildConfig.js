@@ -52,11 +52,7 @@ angular.module('openshiftConsole')
         title: "Edit"
       }
     ];
-    $scope.buildFrom1 = {
-      projects: [],
-      imageStreams: [],
-      tags: {},
-    };
+
     $scope.buildFrom = {
       projects: [],
       imageStreams: [],
@@ -66,7 +62,9 @@ angular.module('openshiftConsole')
       projects: [],
       imageStreams: [],
       tags: {},
+      tagExists: false
     };
+
     $scope.sources = {
       "binary": false,
       "dockerfile": false,
@@ -79,44 +77,55 @@ angular.module('openshiftConsole')
       "imageChange": false,
       "configChange": false
     };
+  
 
-    $scope.myOptions = [];
-
-    $scope.buildFromTest = [];
 
     $scope.namespaceConfig = {
-      create: true,
-      valueField: 'title',
-      labelField: 'title',
-      delimiter: '|',
+      create: false,
+      valueField: 'id',
+      labelField: 'id',
+      sortField: 'id',
       placeholder: 'Pick Namespace',
-      onChange: function(item){
-        console.log("ns");
-        console.log(item);
+      onChange: function(namespace){
+        if (namespace) {
+          $scope.updateOutputImageStreams(namespace, true);
+        }
       },
       maxItems: 1
     };
 
     $scope.imageStreamConfig = {
-      create: true,
-      valueField: 'title',
-      labelField: 'title',
-      delimiter: '|',
+      create: false,
+      valueField: 'id',
+      labelField: 'id',
+      sortField: 'id',
       placeholder: 'Pick Image Stream',
-      onChange: function(item){
-        console.log(item);
+      onDelete: function(values) {
+        console.log(" >>>>>>>>>>> " + values);
+      },
+      // onType: function(str) {
+      //   console.log(" ----------------------------- " + str);
+      // },
+      onChange: function(imageStream){
+        if (imageStream) {
+          $scope.updateOutputTag(imageStream);
+        } else {
+          $scope.options.pickedPushToImageStream = "";
+        }
       },
       maxItems: 1
     };
 
     $scope.tagConfig = {
       create: true,
-      valueField: 'title',
-      labelField: 'title',
-      delimiter: '|',
+      valueField: 'id',
+      labelField: 'id',
+      sortField: 'id',
       placeholder: 'Pick Tag',
-      onChange: function(item){
-        console.log(item);
+      onChange: function(tag){
+        if (imageStream) {
+          $scope.checkOutputTagExists(tag);
+        }
       },
       maxItems: 1
     };
@@ -259,29 +268,19 @@ angular.module('openshiftConsole')
             if ($scope.strategyType === "Docker") {
               $scope.options.noCache = !!$scope.buildConfig.spec.strategy.dockerStrategy.noCache;
               // Only DockerStrategy can have empty Strategy object and therefore it's from object
-              $scope.buildFromTypes.push({"id": "None", "title": "--- None ---"});
+              $scope.buildFromTypes.push({"id": "None", "id": "--- None ---"});
             }
 
-            // $scope.buildFrom.projects = ["openshift"];
-            $scope.buildFrom1.projects = [{title: "openshift"}];
+            $scope.buildFrom.projects = ["openshift"];
+            $scope.pushTo.projects = [{id: "openshift", live: true}];
 
             
             DataService.list("projects", $scope, function(projects) {
               var projects = projects.by("metadata.name");
               for (var name in projects) {
-                $scope.buildFrom.projects.push(name);
-                $scope.pushTo.projects.push(name);
-
-                $scope.buildFrom1.projects.push({title: name});
+                $scope.buildFrom.projects.push({id: name, live: true});
+                $scope.pushTo.projects.push({id: name, live: true});
               }
-
-              $scope.pushTo.projects.forEach(function(project, index) {
-                $scope.buildFromTest.push({
-                  id: index,
-                  title: project
-                });
-              });
-              $scope.myModelTest = 1;
 
               // If builder or output image reference kind is DockerImage select the first imageSteam and imageStreamTag
               // in the picker, so when the user changes the reference kind to ImageStreamTag the picker is filled with
@@ -411,8 +410,6 @@ angular.module('openshiftConsole')
               $scope.clearSelectedBuilderTag();
             }
 
-            $scope.myOptions = BuildConfigsService.arrayToOptions($scope.buildFrom.imageStreams);
-            $scope.myModel = $scope.options.pickedPushToImageStream;
           } else {
             $scope.options.pickedBuildFromImageStream = "";
             $scope.options.pickedBuildFromImageStreamTag = "";
@@ -439,21 +436,24 @@ angular.module('openshiftConsole')
             var tagList = [];
             if (imageStream.status.tags) {
               imageStream.status.tags.forEach(function(item){
-                tagList.push(item["tag"]);
+                tagList.push({id: item["tag"], live: true});
               });
             }
-            $scope.pushTo.imageStreams.push(name);
+            $scope.pushTo.imageStreams.push({id: name, live: true});
+            if ( tagList.length === 0 ) {
+              if (selectFirstOption) {
+                tagList.push({id: "latest", live: false})
+              } else {
+                tagList.push({id: $scope.options.pickedPushToImageStreamTag, live: false})
+              }
+            }
             $scope.pushTo.tags[name] = tagList;
           });
 
           if (selectFirstOption) {
-            $scope.options.pickedPushToImageStream = $scope.pushTo.imageStreams[0];
-            $scope.clearSelectedOutputTag();
-            // If defined Image Stream is not present in the Image Streams of picked Namespace set tag to empty string,
-            // so the user has to pick from a existing Image Streams.
-          } else if (!$scope.pushTo.imageStreams.contains($scope.options.pickedPushToImageStream)) {
-            $scope.options.pickedPushToImageStreamTag = "";
-          }
+            $scope.options.pickedPushToImageStream = $scope.pushTo.imageStreams[0].id;
+            $scope.updateOutputTag($scope.options.pickedPushToImageStream);
+          } 
         } else {
           $scope.options.pickedPushToImageStream = "";
           $scope.options.pickedPushToImageStreamTag = "";
@@ -461,9 +461,22 @@ angular.module('openshiftConsole')
       });
     }
 
-    $scope.clearSelectedOutputTag = function() {
+    $scope.updateOutputTag = function(imageStreamName) {
+      var tags = $scope.pushTo.tags[imageStreamName];
+      if ( _.find(tags, function(tag) { return tag.id !== "latest" })) {
+        $scope.options.pickedPushToImageStreamTag = tags[0].id;
+      }
+      $scope.options.pickedPushToImageStreamTag = "latest";
+      console.log("-->" + imageStreamName);
+      console.log("--->" + $scope.options.pickedPushToImageStreamTag);
+      $scope.checkOutputTagExists($scope.options.pickedPushToImageStreamTag);
+    }
+
+    $scope.checkOutputTagExists = function(tagName) {
       var tags = $scope.pushTo.tags[$scope.options.pickedPushToImageStream];
-      $scope.options.pickedPushToImageStreamTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0] || "latest";
+      tag = _.find(tags, function(tag) { return tag.id === tagName })
+       $scope.pushTo.tagExists   .live;
+      console.log($scope.pushTo.tagExists);
     }
 
     $scope.save = function() {
