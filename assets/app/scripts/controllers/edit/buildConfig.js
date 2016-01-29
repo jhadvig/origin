@@ -340,7 +340,8 @@ angular.module('openshiftConsole')
             $scope.imageSourceBuildFrom.tags[$scope.imageSourceImageStream.imageStream] = [$scope.imageSourceImageStream.tag];
             $scope.options.pickedImageStreamImageStreamTag = $scope.imageSourceImageStream.tag;
           } else {
-            BuildConfigsService.clearImageSourceAndTag($scope.options,"imageSource");
+            $scope.options.optionsModel.pickedImageSourceImageStream = "";
+            $scope.options.pickedImageSourceImageStreamTag = "";
           }
         });
       }
@@ -416,7 +417,8 @@ angular.module('openshiftConsole')
             $scope.buildFrom.tags[$scope.builderImageStream.imageStream] = [$scope.builderImageStream.tag];
             $scope.options.pickedBuildFromImageStreamTag = $scope.builderImageStream.tag;
           } else {
-            BuildConfigsService.clearImageSourceAndTag($scope.options,"builder");
+            $scope.options.optionsModel.pickedBuildFromImageStream = "";
+            $scope.options.pickedBuildFromImageStreamTag = "";
           }
         });
       }
@@ -476,7 +478,8 @@ angular.module('openshiftConsole')
             $scope.options.pickedPushToImageStream = $scope.outputImageStream.imageStream;
             $scope.options.pickedPushToImageStreamTag = $scope.outputImageStream.tag;
           } else {
-            BuildConfigsService.clearImageSourceAndTag($scope.options,"imageSource");
+            $scope.options.optionsModel.pickedPushToImageStream = "";
+            $scope.options.optionsModel.pickedPushToImageStreamTag = "";
           }
         });
       }

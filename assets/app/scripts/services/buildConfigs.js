@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .factory("BuildConfigsService", function(ProjectsService){
+  .factory("BuildConfigsService", function(){
     function BuildConfigsService() {}
 
     BuildConfigsService.prototype.updateEnvVars = function(envVars) {
@@ -14,10 +14,10 @@ angular.module("openshiftConsole")
         updatedEnvVars.push(env);
       });
       return updatedEnvVars;
-    }
+    };
 
     BuildConfigsService.prototype.getTriggerMap = function(triggerMap, triggers) {
-      angular.forEach(triggers, function(value, key) {
+      triggers.forEach(function(value) {
         switch (value.type) {
           case "Generic":
             break;
@@ -33,30 +33,30 @@ angular.module("openshiftConsole")
         }
       });
       return triggerMap;
-    }
+    };
 
     BuildConfigsService.prototype.getSourceMap = function(sourceMap, sources) {
       angular.forEach(sources, function(value, key) {
         switch (key) {
           case "binary":
             sourceMap.binary = true;
-            break
+            break;
           case "dockerfile":
             sourceMap.dockerfile = true;
-            break
+            break;
           case "git":
             sourceMap.git = true;
-            break
+            break;
           case "image":
             sourceMap.image = true;
-            break
+            break;
           case "contextDir":
             sourceMap.contextDir = true;
-            break
+            break;
         }
       });
       return sourceMap;
-    }
+    };
 
     BuildConfigsService.prototype.setBuildFromVariables = function(optionsModel, type, ns, is, ist, isi, di) {
       optionsModel.pickedBuildFromType = type;
@@ -66,7 +66,7 @@ angular.module("openshiftConsole")
       optionsModel.pickedBuildFromImageStreamImage = isi;
       optionsModel.pickedBuildFromDockerImage = di;
       return optionsModel;
-    }
+    };
 
     BuildConfigsService.prototype.setPushToVariables = function(optionsModel, type, ns, is, ist, di) {
       optionsModel.pickedPushToType = type;
@@ -75,25 +75,7 @@ angular.module("openshiftConsole")
       optionsModel.pickedPushToImageStreamTag = ist;
       optionsModel.pickedPushToDockerImage = di;
       return optionsModel;
-    }
-
-    BuildConfigsService.prototype.clearImageSourceAndTag = function(optionsModel, which) {
-      switch (which) {
-        case "builder":
-          optionsModel.pickedBuildFromImageStream = "";
-          optionsModel.pickedBuildFromImageStreamTag = "";
-          break;
-        case "output":
-          optionsModel.pickedPushToImageStream = "";
-          optionsModel.pickedPushToImageStreamTag = "";
-          break;
-        case "imageSource":
-          optionsModel.pickedImageSourceImageStream = "";
-          optionsModel.pickedImageSourceImageStreamTag = "";
-          break;
-      }
-      return optionsModel;
-    }
+    };
 
     return new BuildConfigsService();
   });
