@@ -79,7 +79,6 @@ angular.module('openshiftConsole')
       "imageChange": false,
       "configChange": false
     };
-    $scope.unavailableNamespace = {};
     $scope.availableProjects = [];
 
     AlertMessageService.getAlerts().forEach(function(alert) {
@@ -167,27 +166,25 @@ angular.module('openshiftConsole')
               $scope.availableProjects = angular.copy($scope.buildFrom.projects);
 
               // If builder or output image namespace is not part of users available namespaces, add it to 
-              // the namespace array anyway. Check will be done afterwards together with availability notification.
+              // the namespace array anyway together with and call that checks the availability of the namespace.
               if (!$scope.buildFrom.projects.contains($scope.options.pickedBuildFromNamespace)) {
-                $scope.unavailableNamespace.builder = $scope.options.pickedBuildFromNamespace;
+                $scope.checkNamespaceAvailability($scope.options.pickedBuildFromNamespace, "builder");
                 $scope.buildFrom.projects.push($scope.options.pickedBuildFromNamespace);
               }
               if (!$scope.pushTo.projects.contains($scope.options.pickedPushToNamespace)) {
-                $scope.unavailableNamespace.output = $scope.options.pickedPushToNamespace;
+                $scope.checkNamespaceAvailability($scope.options.pickedPushToNamespace, "output");
                 $scope.pushTo.projects.push($scope.options.pickedPushToNamespace);
               }
 
               // If builder or output image reference kind is DockerImage select the first imageSteam and imageStreamTag
               // in the picker, so when the user changes the reference kind to ImageStreamTag the picker is filled with
               // default(first) value.
-
               if ($scope.options.pickedBuildFromNamespace === "openshift" || $scope.availableProjects.contains($scope.options.pickedBuildFromNamespace)) { 
                 var builderSelectFirstOption = $scope.options.pickedBuildFromType === "DockerImage";
                 $scope.updateBuilderImageStreams($scope.options.pickedBuildFromNamespace, builderSelectFirstOption);
               } else {
                 BuildConfigsService.clearImageSourceAndTag($scope.options,"builder");
               }
-
               if ($scope.availableProjects.contains($scope.options.pickedPushToNamespace)) {
                 var outputSelectFirstOption = $scope.options.pickedPushToType === "DockerImage";
                 $scope.updateOutputImageStreams($scope.options.pickedPushToNamespace, outputSelectFirstOption);
@@ -199,7 +196,7 @@ angular.module('openshiftConsole')
                 $scope.imageSourceBuildFrom.projects = angular.copy($scope.buildFrom.projects);
 
                 if (!$scope.imageSourceBuildFrom.projects.contains($scope.options.pickedImageSourceNamespace)) {
-                  $scope.unavailableNamespace.imageSource = $scope.options.pickedImageSourceNamespace;
+                  $scope.checkNamespaceAvailability($scope.options.pickedImageSourceNamespace, "imageSource");
                   $scope.imageSourceBuildFrom.projects.push($scope.options.pickedImageSourceNamespace);
                 }
 
@@ -324,6 +321,10 @@ angular.module('openshiftConsole')
     // As parameter takes the picked namespace, selectFirstOption as a boolean that indicates whether the imageStreams and imageStreamTags
     // selectboxes should be select the first option.
     $scope.updateBuilderImageStreams = function(projectName, selectFirstOption) {
+      if (!$scope.availableProjects.contains(projectName)){
+        BuildConfigsService.clearImageSourceAndTag($scope.options,"builder");
+        return;
+      }
       if ($scope.options.pickedBuildFromType === 'None') {
         $scope.pickedTriggers['imageChange'] = false;
       } else {
@@ -417,10 +418,11 @@ angular.module('openshiftConsole')
       }
     }
 
-    $scope.checkNamespaceAvailability = function(ns) {
+    // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable 
+    $scope.checkNamespaceAvailability = function(ns, type) {
       DataService.get("projects", ns, {}, { errorNotification: false})
       .then(function() {
-        return true;
+        $scope.availableProjects.push(ns);
       }, function(result) {
         if (result.status === 403) {
           $scope.alerts["load"] = {
@@ -435,7 +437,6 @@ angular.module('openshiftConsole')
             details: "Reason: " + $filter('getErrorDetails')(result)
           };
         }
-        return false;
       });
     }
 
