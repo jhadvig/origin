@@ -135,6 +135,18 @@
                             <dt>Builder image stream:</dt>
                             <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                           </div>
+                          <div ng-if="buildConfig.spec.source.dockerfile">
+                            <dt>Dockerfile:</dt><dd></dd>
+                            <div ui-ace="{
+                              mode: 'dockerfile',
+                              theme: 'eclipse',
+                              onLoad: aceLoaded,
+                              rendererOptions: {
+                                fadeFoldWidgets: true,
+                                showPrintMargin: false
+                              }
+                            }" readonly ng-model="buildConfig.spec.source.dockerfile" class="dockerfile-editor dockerfile-mode"></div>
+                          </div>
                         </div>
                         <div ng-switch-when="Custom">
                           <div ng-if="buildConfig.spec.strategy.customStrategy.from">

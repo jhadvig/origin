@@ -287,6 +287,7 @@
                                 class="form-control multiselector select-builder-tag"
                                 ng-model="options.pickedBuildFromImageStreamTag"
                                 ng-options="name as name for name in buildFrom.tags[options.pickedBuildFromImageStream] track by name"
+                                ng-disabled="options.pickedBuildFromImageStream === ''"
                                 required>
                               </select>
                               <div>
@@ -338,7 +339,8 @@
                                 class="form-control multiselector select-output-namespace"
                                 ng-model="options.pickedPushToNamespace"
                                 ng-options="name for name in pushTo.projects track by name"
-                                ng-change="updateOutputImageStreams(options.pickedPushToNamespace, true)">
+                                ng-change="updateOutputImageStreams(options.pickedPushToNamespace, true)"
+                                required>
                               </select>
                             </div>
                           </div>
@@ -349,7 +351,8 @@
                                 class="form-control multiselector select-output-name"
                                 ng-model="options.pickedPushToImageStream"
                                 ng-options="name as name for name in pushTo.imageStreams track by name"
-                                ng-change="clearSelectedOutputTag()">
+                                ng-change="clearSelectedOutputTag()"
+                                required>
                               </select>
                               <div>
                                 <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
@@ -367,6 +370,7 @@
                                 name="FromTypeLink"
                                 type="text"
                                 ng-model="options.pickedPushToImageStreamTag"
+                                ng-disabled="options.pickedPushToImageStream === ''"
                                 autocorrect="off"
                                 autocapitalize="off"
                                 spellcheck="false"
