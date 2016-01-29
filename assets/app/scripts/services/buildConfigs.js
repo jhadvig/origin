@@ -58,22 +58,40 @@ angular.module("openshiftConsole")
       return sourceMap;
     }
 
-    BuildConfigsService.prototype.setBuildFromVariables = function(optionModel, type, ns, is, ist, di) {
-      optionModel.pickedBuildFromType = type;
-      optionModel.pickedBuildFromNamespace = ns;
-      optionModel.pickedBuildFromImageStream = is;
-      optionModel.pickedBuildFromImageStreamTag = ist;
-      optionModel.pickedBuildFromDockerImage = di;
-      return optionModel;
+    BuildConfigsService.prototype.setBuildFromVariables = function(optionsModel, type, ns, is, ist, di) {
+      optionsModel.pickedBuildFromType = type;
+      optionsModel.pickedBuildFromNamespace = ns;
+      optionsModel.pickedBuildFromImageStream = is;
+      optionsModel.pickedBuildFromImageStreamTag = ist;
+      optionsModel.pickedBuildFromDockerImage = di;
+      return optionsModel;
     }
 
-    BuildConfigsService.prototype.setPushToVariables = function(optionModel, type, ns, is, ist, di) {
-      optionModel.pickedPushToType = type;
-      optionModel.pickedPushToNamespace = ns;
-      optionModel.pickedPushToImageStream = is;
-      optionModel.pickedPushToImageStreamTag = ist;
-      optionModel.pickedPushToDockerImage = di;
-      return optionModel;
+    BuildConfigsService.prototype.setPushToVariables = function(optionsModel, type, ns, is, ist, di) {
+      optionsModel.pickedPushToType = type;
+      optionsModel.pickedPushToNamespace = ns;
+      optionsModel.pickedPushToImageStream = is;
+      optionsModel.pickedPushToImageStreamTag = ist;
+      optionsModel.pickedPushToDockerImage = di;
+      return optionsModel;
+    }
+
+    BuildConfigsService.prototype.clearImageSourceAndTag = function(optionsModel, which) {
+      switch (which) {
+        case "builder":
+          optionsModel.pickedBuildFromImageStream = "";
+          optionsModel.pickedBuildFromImageStreamTag = "";
+          break;
+        case "output":
+          optionsModel.pickedPushToImageStream = "";
+          optionsModel.pickedPushToImageStreamTag = "";
+          break;
+        case "imageSource":
+          optionsModel.pickedImageSourceImageStream = "";
+          optionsModel.pickedImageSourceImageStreamTag = "";
+          break;
+      }
+      return optionsModel;
     }
 
     return new BuildConfigsService();

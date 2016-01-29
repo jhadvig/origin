@@ -75,6 +75,12 @@ angular.module('openshiftConsole')
       "imageChange": false,
       "configChange": false
     };
+    $scope.availableNamespace = {
+      builder: true,
+      output: true,
+      imageSource: true
+    }
+    $scope.availableProjects = [];
 
     AlertMessageService.getAlerts().forEach(function(alert) {
       $scope.alerts[alert.name] = alert.data;
@@ -126,24 +132,7 @@ angular.module('openshiftConsole')
 
             $scope.options.forcePull = !!$scope.buildStrategy.forcePull;
 
-            // $scope.builderImageStream = {
-            //   namespace: $scope.options.pickedBuildFromNamespace,
-            //   imageStream: $scope.options.pickedBuildFromImageStream,
-            //   tag: $scope.options.pickedBuildFromImageStreamTag,
-            // };
-
-            // $scope.outputImageStream = {
-            //   namespace: $scope.options.pickedPushToNamespace,
-            //   imageStream: $scope.options.pickedPushToImageStream,
-            //   tag: $scope.options.pickedPushToImageStreamTag,
-            // };
-
             if ($scope.sources.image) {
-              // $scope.imageSourceBuildFrom = {
-              //   projects: [],
-              //   imageStreams: [],
-              //   tags: {},
-              // };
 
               $scope.imageSourcePaths = $filter('destinationSourcePair')($scope.buildConfig.spec.source.image.paths);
               $scope.imageSourceTypes = angular.copy($scope.buildFromTypes);
@@ -176,6 +165,7 @@ angular.module('openshiftConsole')
             DataService.list("projects", $scope, function(projects) {
               var projects = projects.by("metadata.name");
               for (var name in projects) {
+                $scope.availableProjects.push(name);
                 $scope.buildFrom.projects.push(name);
                 $scope.pushTo.projects.push(name);
               }
@@ -183,33 +173,49 @@ angular.module('openshiftConsole')
               // If builder or output image namespace is not part of users available namespaces, add it to 
               // the namespace array anyway. Check will be done afterwards together with availability notification.
               if (!$scope.buildFrom.projects.contains($scope.options.pickedBuildFromNamespace)) {
+                $scope.availableNamespace.builder = false;
                 $scope.buildFrom.projects.push($scope.options.pickedBuildFromNamespace);
               }
               if (!$scope.pushTo.projects.contains($scope.options.pickedPushToNamespace)) {
+                $scope.availableNamespace.output = false;
                 $scope.pushTo.projects.push($scope.options.pickedPushToNamespace);
               }
 
               // If builder or output image reference kind is DockerImage select the first imageSteam and imageStreamTag
               // in the picker, so when the user changes the reference kind to ImageStreamTag the picker is filled with
               // default(first) value.
-              if ($scope.options.pickedBuildFromNamespace === "openshift" || $scope.checkNamespaceAvailability($scope.options.pickedBuildFromNamespace)) { 
-                var builderSelectFirstOption = $scope.options.pickedBuildFromType === "DockerImage";
-                $scope.updateBuilderImageStreams($scope.options.pickedBuildFromNamespace, builderSelectFirstOption);
-              } else {
-                $scope.clearBuilderImageStreamAndTag();
+              if ($scope.availableNamespace.builder) {
+                if ($scope.options.pickedBuildFromNamespace === "openshift" || $scope.checkNamespaceAvailability($scope.options.pickedBuildFromNamespace)) { 
+                  var builderSelectFirstOption = $scope.options.pickedBuildFromType === "DockerImage";
+                  $scope.updateBuilderImageStreams($scope.options.pickedBuildFromNamespace, builderSelectFirstOption);
+                } else {
+                  BuildConfigsService.clearImageSourceAndTag($scope.options,"builder");
+                }
               }
 
-              if ($scope.checkNamespaceAvailability($scope.options.pickedPushToNamespace)) {
-                var outputSelectFirstOption = $scope.options.pickedPushToType === "DockerImage";
-                $scope.updateOutputImageStreams($scope.options.pickedPushToNamespace, outputSelectFirstOption);
-              } else {
-                $scope.clearOutputImageStreamAndTag();
+              if ($scope.availableNamespace.output) {
+                if ($scope.checkNamespaceAvailability($scope.options.pickedPushToNamespace)) {
+                  var outputSelectFirstOption = $scope.options.pickedPushToType === "DockerImage";
+                  $scope.updateOutputImageStreams($scope.options.pickedPushToNamespace, outputSelectFirstOption);
+                } else {
+                  BuildConfigsService.clearImageSourceAndTag($scope.options,"output");
+                }
               }
 
               if ($scope.sources.image) {
                 $scope.imageSourceBuildFrom.projects = angular.copy($scope.buildFrom.projects);
-                var imageSourceSelectFirstOption = $scope.options.pickedImageSourceType === "DockerImage";
-                $scope.updateImageSourceImageStreams($scope.options.pickedImageSourceNamespace, imageSourceSelectFirstOption);
+
+                if (!$scope.imageSourceBuildFrom.projects.contains($scope.options.pickedImageSourceNamespace)) {
+                  $scope.availableNamespace.imageSource = false;
+                  $scope.imageSourceBuildFrom.projects.push($scope.options.pickedImageSourceNamespace);
+                }
+
+                if ($scope.options.pickedBuildFromNamespace === "openshift" || $scope.checkNamespaceAvailability($scope.options.pickedBuildFromNamespace)) {
+                  var imageSourceSelectFirstOption = $scope.options.pickedImageSourceType === "DockerImage";
+                  $scope.updateImageSourceImageStreams($scope.options.pickedImageSourceNamespace, imageSourceSelectFirstOption);
+                } else {
+                  BuildConfigsService.clearImageSourceAndTag($scope.options,"imageSource");
+                }
               }
             });
             $scope.loaded = true;
@@ -280,8 +286,7 @@ angular.module('openshiftConsole')
             $scope.clearSelectedImageSourceTag();
           }
         } else {
-          $scope.options.pickedImageSourceImageStream = "";
-          $scope.options.pickedImageSourceImageStreamTag = "";
+          BuildConfigsService.clearImageSourceAndTag($scope.options,"imageSource");
         }
       });
     }
@@ -330,7 +335,7 @@ angular.module('openshiftConsole')
               $scope.clearSelectedBuilderTag();
             }
           } else {
-            clearBuilderImageStreamAndTag();
+            BuildConfigsService.clearImageSourceAndTag($scope.options,"builder");
           }
         });
       }
@@ -343,11 +348,6 @@ angular.module('openshiftConsole')
       } else {
         $scope.clearBuilderImageStreamAndTag();
       }
-    }
-
-    $scope.clearBuilderImageStreamAndTag = function() {
-      $scope.options.pickedBuildFromImageStream = "";
-      $scope.options.pickedBuildFromImageStreamTag = "";
     }
 
     // updateOutputImageStreams creates/updates the list of imageStreams and imageStreamTags for the output image from picked namespace.
@@ -379,7 +379,7 @@ angular.module('openshiftConsole')
             $scope.options.pickedPushToImageStreamTag = "";
           }
         } else {
-          $scope.clearOutputImageStreamAndTag();
+          BuildConfigsService.clearImageSourceAndTag($scope.options,"imageSource");
         }
       });
     }
@@ -387,11 +387,6 @@ angular.module('openshiftConsole')
     $scope.clearSelectedOutputTag = function() {
       var tags = $scope.pushTo.tags[$scope.options.pickedPushToImageStream];
       $scope.options.pickedPushToImageStreamTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0] || "latest";
-    }
-
-    $scope.clearOutputImageStreamAndTag = function() {
-      $scope.options.pickedPushToImageStream = "";
-      $scope.options.pickedPushToImageStreamTag = "";
     }
 
     $scope.checkNamespaceAvailability = function(ns) {
