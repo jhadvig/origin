@@ -28,6 +28,13 @@ angular.module('openshiftConsole')
     });
     AlertMessageService.clearAlerts();
 
+    $scope.aceLoaded = function(editor) {
+      var session = editor.getSession();
+      session.setOption('tabSize', 2);
+      session.setOption('useSoftTabs', true);
+      editor.$blockScrolling = Infinity;
+    };
+
     var watches = [];
 
     ProjectsService

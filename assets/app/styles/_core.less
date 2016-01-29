@@ -19,8 +19,8 @@ html, body {
   input[type="search"],
   input[type="url"],
   textarea,
-  .modal-resource-edit .editor {
-    font-size: 16px;
+  .ace_editor {
+    font-size: 16px !important;
   }
 
   // Fix Bootstrap modal dialog zoom on the iPhone
@@ -860,6 +860,10 @@ a.disabled-link {
   }
 }
 
+.dockerfile-editor {
+  min-height: 200px;
+}
+
 .edit-form {
   margin: 30px auto;
   .form-groups {
@@ -869,11 +873,6 @@ a.disabled-link {
   .form-groups:hover {
     padding-left: 10px;
     border-left: 1px solid #0099d3;
-  }
-  .form-group {
-    .dockerfile-editor {
-      height: 200px;
-    }
   }
   .labels {
     .form-group {
@@ -888,6 +887,9 @@ a.disabled-link {
   }
   .section {
     padding-bottom: 15px;
+  }
+  .warnings {
+    text-align: center;
   }
 
   @media (max-width: @screen-sm-min) {
