@@ -58,11 +58,12 @@ angular.module("openshiftConsole")
       return sourceMap;
     }
 
-    BuildConfigsService.prototype.setBuildFromVariables = function(optionsModel, type, ns, is, ist, di) {
+    BuildConfigsService.prototype.setBuildFromVariables = function(optionsModel, type, ns, is, ist, isi, di) {
       optionsModel.pickedBuildFromType = type;
       optionsModel.pickedBuildFromNamespace = ns;
       optionsModel.pickedBuildFromImageStream = is;
       optionsModel.pickedBuildFromImageStreamTag = ist;
+      optionsModel.pickedBuildFromImageStreamImage = isi;
       optionsModel.pickedBuildFromDockerImage = di;
       return optionsModel;
     }

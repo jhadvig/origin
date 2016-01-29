@@ -143,7 +143,7 @@
                             class="form-control simpleselector"
                             ng-model="options.pickedImageSourceType"
                             ng-options="type.id as type.title for type in imageSourceTypes"
-                            ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)">
+                            ng-change="assambleInputType('imageSource', options.pickedImageSourceType)">
                           </select>
                         </div>
 
@@ -245,8 +245,8 @@
                           <select 
                             class="form-control simpleselector"
                             ng-model="options.pickedBuildFromType"
-                            ng-options="type.id as type.title for type in buildFromTypes"
-                            ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)">
+                            ng-options="type.id as type.title for type in buildFromTypes"                            
+                            ng-change="assambleInputType('builder', options.pickedBuildFromType)">
                           </select>
                         </div>
 
@@ -261,6 +261,9 @@
                                 ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)"
                                 required>
                               </select>
+                              <div>
+                                <span class="text-danger" ng-if="!availableProjects.contains(options.pickedBuildFromNamespace)">Selected Namespace is not available.</span>
+                              </div>
                             </div>
                           </div>
                           <div class="col-lg-4">
@@ -310,6 +313,21 @@
                               required>
                           </div>
                         </div>
+
+                        <div ng-if="options.pickedBuildFromType=='ImageStreamImage'" class="form-group">
+                          <label for="FromTypeLink">Image Stream Image</label>
+                          <div>
+                            <input class="form-control"
+                              type="text"
+                              ng-model="options.pickedBuildFromImageStreamImage"
+                              placeholder="example: ruby-20-centos7@603bfa418"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false"
+                              required>
+                          </div>
+                        </div>
+
                       </div>
 
                       <div class="form-group">
@@ -327,7 +345,8 @@
                           <select 
                             class="form-control simpleselector"
                             ng-model="options.pickedPushToType"
-                            ng-options="type.id as type.title for type in pushToTypes">
+                            ng-options="type.id as type.title for type in pushToTypes"
+                            ng-change="assambleInputType('output', options.pickedPushToType)">
                           </select>
                         </div>
 
