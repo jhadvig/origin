@@ -101,7 +101,7 @@ angular.module('openshiftConsole')
             $scope.envVars = $filter('envVarsPair')($scope.buildStrategy.env);
             $scope.triggers = BuildConfigsService.getTriggerMap($scope.triggers, $scope.buildConfig.spec.triggers)
             $scope.pickedTriggers = $scope.triggers;
-            $scope.sources = BuildConfigsService.getSourceMap($scope.sources, $scope.buildConfig.spec.source);
+            $scope.sources = $scope.getSourceMap($scope.sources, $scope.buildConfig.spec.source);
 
             if ($scope.buildStrategy.from) {
               var buildFrom = $scope.buildStrategy.from;
@@ -182,6 +182,7 @@ angular.module('openshiftConsole')
             }
 
             $scope.buildFrom.projects = ["openshift"];
+            $scope.pushTo.projects = ["openshift"];
             DataService.list("projects", $scope, function(projects) {
               var projects = projects.by("metadata.name");
               for (var name in projects) {
@@ -298,7 +299,7 @@ angular.module('openshiftConsole')
           $scope.imageSourceBuildFrom.tags = {};
           var projectImageStreams = imageStreams.by("metadata.name");
           if (!_.isEmpty(projectImageStreams)) {
-            if (!Object.keys(projectImageStreams).contains($scope.imageSourceBuildFrom.imageStream)) {
+            if (!Object.keys(projectImageStreams).contains($scope.imageSourceBuildFrom.imageStream) && projectName === $scope.imageSourceBuildFrom.namespace) {
               $scope.imageSourceBuildFrom.imageStreams.push($scope.imageSourceImageStream.imageStream);
               $scope.options.pickedImageStreamImageStream = $scope.imageSourceImageStream.imageStream;
               $scope.imageSourceBuildFrom.tags[$scope.imageSourceImageStream.imageStream] = [$scope.imageSourceImageStream.tag];
@@ -332,7 +333,7 @@ angular.module('openshiftConsole')
             }
             if (selectFirstOption) {
               $scope.options.pickedImageSourceImageStream = $scope.imageSourceBuildFrom.imageStreams[0];
-              $scope.clearSelectedImageSourceTag();
+              $scope.clearSelectedTag($scope.imageSourceBuildFrom.tags, $scope.options.pickedImageSourceImageStream);
             }
           } else if (projectName === $scope.outputImageStream.namespace) {
             $scope.imageSourceBuildFrom.imageStreams.push($scope.imageSourceImageStream.imageStream);
@@ -344,15 +345,6 @@ angular.module('openshiftConsole')
             $scope.options.pickedImageSourceImageStreamTag = "";
           }
         });
-      }
-    }
-
-    $scope.clearSelectedImageSourceTag = function() {
-      var tags = $scope.imageSourceBuildFrom.tags[$scope.options.pickedImageSourceImageStream];
-      if (tags) {
-        $scope.options.pickedImageSourceImageStreamTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0]
-      } else {
-        $scope.options.pickedImageSourceImageStreamTag = "";
       }
     }
 
@@ -374,7 +366,7 @@ angular.module('openshiftConsole')
           $scope.buildFrom.tags = {};
           var projectImageStreams = imageStreams.by("metadata.name");
           if (!_.isEmpty(projectImageStreams)) {
-            if (!Object.keys(projectImageStreams).contains($scope.builderImageStream.imageStream)) {
+            if (!Object.keys(projectImageStreams).contains($scope.builderImageStream.imageStream) && projectName === $scope.builderImageStream.namespace) {
               $scope.buildFrom.imageStreams.push($scope.builderImageStream.imageStream);
               $scope.options.pickedBuildFromImageStream = $scope.builderImageStream.imageStream;
               $scope.buildFrom.tags[$scope.builderImageStream.imageStream] = [$scope.builderImageStream.tag];
@@ -409,7 +401,7 @@ angular.module('openshiftConsole')
             }
             if (selectFirstOption) {
               $scope.options.pickedBuildFromImageStream = $scope.buildFrom.imageStreams[0];
-              $scope.clearSelectedBuilderTag();
+              $scope.clearSelectedTag($scope.buildFrom.tags, $scope.options.pickedBuildFromImageStream);
             }
           } else if (projectName === $scope.builderImageStream.namespace) {
             $scope.buildFrom.imageStreams.push($scope.builderImageStream.imageStream);
@@ -421,15 +413,6 @@ angular.module('openshiftConsole')
             $scope.options.pickedBuildFromImageStreamTag = "";
           }
         });
-      }
-    }
-
-    $scope.clearSelectedBuilderTag = function() {
-      var tags = $scope.buildFrom.tags[$scope.options.pickedBuildFromImageStream];
-      if (tags) {
-        $scope.options.pickedBuildFromImageStreamTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0];
-      } else {
-        $scope.options.pickedBuildFromImageStreamTag = "";
       }
     }
 
@@ -449,7 +432,7 @@ angular.module('openshiftConsole')
           $scope.pushTo.tags = {};
           var projectImageStreams = imageStreams.by("metadata.name");
           if (!_.isEmpty(projectImageStreams)) {
-            if (!Object.keys(projectImageStreams).contains($scope.outputImageStream.imageStream)) {
+            if (!Object.keys(projectImageStreams).contains($scope.outputImageStream.imageStream) && projectName === $scope.outputImageStream.namespace) {
               $scope.pushTo.imageStreams.push($scope.outputImageStream.imageStream);
               $scope.options.pickedPushToImageStream = $scope.outputImageStream.imageStream;
               $scope.options.pickedPushToImageStreamTag = $scope.outputImageStream.tag;
@@ -467,7 +450,7 @@ angular.module('openshiftConsole')
 
             if (selectFirstOption) {
               $scope.options.pickedPushToImageStream = $scope.pushTo.imageStreams[0];
-              $scope.clearSelectedOutputTag();
+              $scope.clearSelectedTag($scope.pushTo.tags, $scope.options.pickedPushToImageStream);
               // If defined Image Stream is not present in the Image Streams of picked Namespace set tag to empty string,
               // so the user has to pick from a existing Image Streams.
             } else if (!$scope.pushTo.imageStreams.contains($scope.options.pickedPushToImageStream)) {
@@ -485,12 +468,12 @@ angular.module('openshiftConsole')
       }
     }
 
-    $scope.clearSelectedOutputTag = function() {
-      var tags = $scope.pushTo.tags[$scope.options.pickedPushToImageStream];
-      if (tags) {
-        $scope.options.pickedPushToImageStreamTag = _.find(tags, function(tag) { return tag == "latest" }) || tags[0]
+    $scope.clearSelectedTag = function(tagHash, pickedImageStream) {
+      var tags = tagHash[pickedImageStream];
+      if (tags.length > 0) {
+        return _.find(tags, function(tag) { return tag == "latest" }) || tags[0]
       } else {
-        $scope.options.pickedPushToImageStreamTag =  "latest";
+        return  "latest";
       }
     }
 
@@ -706,8 +689,36 @@ angular.module('openshiftConsole')
       return "";
     };
 
-    $scope.showOutputTagWarning = function() {
-      return 
+    $scope.showOutputTagWarning = function(form) {
+      if (form.outputNamespace.$dirty || form.outputImageStream.$dirty || form.outputTag.$dirty) {
+        if ($scope.pushTo.tags[$scope.options.pickedPushToImageStream] && $scope.pushTo.tags[$scope.options.pickedPushToImageStream].contains($scope.options.pickedPushToImageStreamTag)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    $scope.getSourceMap = function(sourceMap, sources) {
+      angular.forEach(sources, function(value, key) {
+        switch (key) {
+          case "binary":
+            sourceMap.binary = true;
+            break;
+          case "dockerfile":
+            sourceMap.dockerfile = true;
+            break;
+          case "git":
+            sourceMap.git = true;
+            break;
+          case "image":
+            sourceMap.image = true;
+            break;
+          case "contextDir":
+            sourceMap.contextDir = true;
+            break;
+        }
+      });
+      return sourceMap;
     };
 
   });

@@ -406,6 +406,7 @@
                           <div class="col-lg-4">
                             <div class="label-with-selector">
                               <label class="multiselector-label">Tag</label>
+                              <span  ng-if="showOutputTagWarning(form)" data-toggle="tooltip" data-placement="right" title="Tag is already created and will be overridden on build." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
                               <div>
                               <input class="form-control multiselector select-output-tag"
                                 id="outputTag"
@@ -418,9 +419,9 @@
                                 spellcheck="false"
                                 required>
                               </div>
-                              <div class="text-center">
-                                <span class="text-warning" ng-if="pushTo.tags[options.pickedPushToImageStream].contains(options.pickedPushToImageStreamTag)">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
-                              </div>
+<!--                               <div class="text-center">
+                                <span class="text-warning" ng-if="showOutputTagWarning(form)">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
+                              </div> -->
                             </div>
                           </div>
                         </div>

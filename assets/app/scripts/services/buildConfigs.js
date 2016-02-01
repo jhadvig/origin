@@ -35,28 +35,6 @@ angular.module("openshiftConsole")
       return triggerMap;
     };
 
-    BuildConfigsService.prototype.getSourceMap = function(sourceMap, sources) {
-      angular.forEach(sources, function(value, key) {
-        switch (key) {
-          case "binary":
-            sourceMap.binary = true;
-            break;
-          case "dockerfile":
-            sourceMap.dockerfile = true;
-            break;
-          case "git":
-            sourceMap.git = true;
-            break;
-          case "image":
-            sourceMap.image = true;
-            break;
-          case "contextDir":
-            sourceMap.contextDir = true;
-            break;
-        }
-      });
-      return sourceMap;
-    };
 
     BuildConfigsService.prototype.setBuildFromVariables = function(optionsModel, type, ns, is, ist, isi, di) {
       optionsModel.pickedBuildFromType = type;
