@@ -159,8 +159,8 @@
                                 ng-change="updateImageSourceImageStreams(options.pickedImageSourceNamespace, true)"
                                 required>
                               </select>
-                              <div class="warnings">
-                                <span class="text-danger" ng-if="!availableProjects.contains(options.pickedImageSourceNamespace)">Selected Namespace is not available.</span>
+                              <div class="text-center">
+                                <span class="text-danger" ng-if="!availableProjects.contains(options.pickedImageSourceNamespace)">Could not load image streams from namespace.</span>
                               </div>
                             </div>
                           </div>
@@ -176,9 +176,9 @@
                                 ng-change="clearSelectedImageSourceTag()"
                                 required>
                               </select>
-                              <div class="warnings">
-                                <span class="text-danger" ng-if="imageSourceBuildFrom.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
-                                <span class="text-danger" ng-if="imageSourceBuildFrom.imageStreams.length !== 0 && !imageSourceBuildFrom.imageStreams.contains(options.pickedImageSourceImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedImageSourceImageStream}}'</b>.</span>
+                              <div class="text-center">
+                                <span class="text-danger" ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, options.pickedImageSourceImageStream) === 'empty'">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, options.pickedImageSourceImageStream) === 'noMatch'">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedImageSourceImageStream}}'</b>.</span>
                               </div>
                             </div>
                           </div>
@@ -194,9 +194,9 @@
                                 ng-disabled="options.pickedImageSourceImageStream === ''"
                                 required>
                               </select>
-                              <div class="warnings" ng-if="options.pickedImageSourceImageStream !== ''">
-                                <span class="text-danger" ng-if="imageSourceBuildFrom.tags[options.pickedImageSourceImageStream].length === 0">Selected Image Stream doesn't contain any tagged image to build from.</span>
-                                <span class="text-danger" ng-if="imageSourceBuildFrom.tags[options.pickedImageSourceImageStream].length !== 0 && !imageSourceBuildFrom.tags[options.pickedImageSourceImageStream].contains(options.pickedImageSourceImageStreamTag)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedImageSourceImageStreamTag}}'</b></span>
+                              <div class="text-center" ng-if="options.pickedImageSourceImageStream !== ''">
+                                <span class="text-danger" ng-if="inspectTags(imageSourceBuildFrom.tags, options.pickedImageSourceImageStream, options.pickedImageSourceImageStreamTag) === 'empty'">Selected Image Stream doesn't contain any tagged image to build from.</span>
+                                <span class="text-danger" ng-if="inspectTags(imageSourceBuildFrom.tags, options.pickedImageSourceImageStream, options.pickedImageSourceImageStreamTag) === 'noMatch'">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedImageSourceImageStreamTag}}'</b></span>
                               </div>
                             </div>
                           </div>
@@ -278,7 +278,7 @@
                                 ng-change="updateBuilderImageStreams(options.pickedBuildFromNamespace, true)"
                                 required>
                               </select>
-                              <div class="warnings">
+                              <div class="text-center">
                                 <span class="text-danger" ng-if="!availableProjects.contains(options.pickedBuildFromNamespace)">Selected Namespace is not available.</span>
                               </div>
                             </div>
@@ -293,9 +293,9 @@
                                 ng-change="clearSelectedBuilderTag()"
                                 required>
                               </select>
-                              <div class="warnings">
-                                <span class="text-danger" ng-if="buildFrom.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
-                                <span class="text-danger" ng-if="buildFrom.imageStreams.length !== 0 && !buildFrom.imageStreams.contains(options.pickedBuildFromImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedBuildFromImageStream}}'</b>.</span>
+                              <div class="text-center">
+                                <span class="text-danger" ng-if="inspectNamespace(buildFrom.imageStreams, options.pickedBuildFromImageStream) === 'empty'">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="inspectNamespace(buildFrom.imageStreams, options.pickedBuildFromImageStream) === 'noMatch'">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedBuildFromImageStream}}'</b>.</span>
                               </div>
                             </div>
                           </div>
@@ -310,9 +310,9 @@
                                 ng-disabled="options.pickedBuildFromImageStream === ''"
                                 required>
                               </select>
-                              <div class="warnings" ng-if="options.pickedBuildFromImageStream !== ''">
-                                <span class="text-danger" ng-if="buildFrom.tags[options.pickedBuildFromImageStream].length === 0">Selected Image Stream doesn't contain any tagged image to build from.</span>
-                                <span class="text-danger" ng-if="buildFrom.tags[options.pickedBuildFromImageStream].length !== 0 && !buildFrom.tags[options.pickedBuildFromImageStream].contains(options.pickedBuildFromImageStreamTag)">Selected Image Stream doesn't contain Tag <b>'{{options.pickedBuildFromImageStreamTag}}'</b>.</span>
+                              <div class="text-center" ng-if="options.pickedBuildFromImageStream !== ''">
+                                <span class="text-danger" ng-if="inspectTags(buildFrom.tags, options.pickedBuildFromImageStream, options.pickedBuildFromImageStreamTag) === 'empty'">Selected Image Stream doesn't contain any tagged image to build from.</span>
+                                <span class="text-danger" ng-if="inspectTags(buildFrom.tags, options.pickedBuildFromImageStream, options.pickedBuildFromImageStreamTag) === 'noMatch'">Selected Image Stream doesn't contain Tag <b>'{{options.pickedBuildFromImageStreamTag}}'</b>.</span>
                               </div>
                             </div>
                           </div>
@@ -372,16 +372,16 @@
                           <div class="col-lg-4">
                            <div class="label-with-selector">
                               <label class="multiselector-label">Namespace</label>
+                              <span  ng-if="!isNamespaceAvailable(options.pickedPushToNamespace)" data-toggle="tooltip" data-placement="right" title="Selected Namespace is not available." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
                               <select 
                                 class="form-control multiselector select-output-namespace"
+                                id="outputNamespace"
+                                name="outputNamespace"
                                 ng-model="options.pickedPushToNamespace"
                                 ng-options="name for name in pushTo.projects track by name"
                                 ng-change="updateOutputImageStreams(options.pickedPushToNamespace, true)"
                                 required>
                               </select>
-                              <div class="warnings">
-                                <span class="text-danger" ng-if="!availableProjects.contains(options.pickedPushToNamespace)">Selected Namespace is not available.</span>
-                              </div>
                             </div>
                           </div>
                           <div class="col-lg-4">
@@ -389,14 +389,16 @@
                               <label class="multiselector-label">Image Stream</label>
                               <select
                                 class="form-control multiselector select-output-name"
+                                id="outputImageStream"
+                                name="outputImageStream"
                                 ng-model="options.pickedPushToImageStream"
                                 ng-options="name as name for name in pushTo.imageStreams track by name"
                                 ng-change="clearSelectedOutputTag()"
                                 required>
                               </select>
-                              <div class="warnings">
-                                <span class="text-danger" ng-if="pushTo.imageStreams.length === 0">Selected Namespace doesn't contain any Image Streams to build from.</span>
-                                <span class="text-danger" ng-if="pushTo.imageStreams.length !== 0 && !pushTo.imageStreams.contains(options.pickedPushToImageStream)">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span>
+                              <div class="text-center">
+                                <span class="text-danger" ng-if="inspectNamespace(pushTo.imageStreams, options.pickedPushToImageStream) === 'empty'">Selected Namespace doesn't contain any Image Streams to build from.</span>
+                                <span class="text-danger" ng-if="inspectNamespace(pushTo.imageStreams, options.pickedPushToImageStream) === 'noMatch'">Selected Namespace doesn't contain Image Stream <b>'{{options.pickedPushToImageStream}}'</b>.</span>
                               </div>
                             </div>
                           </div>
@@ -406,8 +408,8 @@
                               <label class="multiselector-label">Tag</label>
                               <div>
                               <input class="form-control multiselector select-output-tag"
-                                id="FromTypeLink"
-                                name="FromTypeLink"
+                                id="outputTag"
+                                name="outputTag"
                                 type="text"
                                 ng-model="options.pickedPushToImageStreamTag"
                                 ng-disabled="options.pickedPushToImageStream === ''"
@@ -416,7 +418,7 @@
                                 spellcheck="false"
                                 required>
                               </div>
-                              <div class="warnings">
+                              <div class="text-center">
                                 <span class="text-warning" ng-if="pushTo.tags[options.pickedPushToImageStream].contains(options.pickedPushToImageStreamTag)">Tag <b>'{{options.pickedPushToImageStreamTag}}'</b> is already created and will be overridden on build.</span>
                               </div>
                             </div>

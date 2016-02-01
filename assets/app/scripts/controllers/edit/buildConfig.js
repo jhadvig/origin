@@ -340,7 +340,7 @@ angular.module('openshiftConsole')
             $scope.imageSourceBuildFrom.tags[$scope.imageSourceImageStream.imageStream] = [$scope.imageSourceImageStream.tag];
             $scope.options.pickedImageStreamImageStreamTag = $scope.imageSourceImageStream.tag;
           } else {
-            $scope.options.optionsModel.pickedImageSourceImageStream = "";
+            $scope.options.pickedImageSourceImageStream = "";
             $scope.options.pickedImageSourceImageStreamTag = "";
           }
         });
@@ -417,7 +417,7 @@ angular.module('openshiftConsole')
             $scope.buildFrom.tags[$scope.builderImageStream.imageStream] = [$scope.builderImageStream.tag];
             $scope.options.pickedBuildFromImageStreamTag = $scope.builderImageStream.tag;
           } else {
-            $scope.options.optionsModel.pickedBuildFromImageStream = "";
+            $scope.options.pickedBuildFromImageStream = "";
             $scope.options.pickedBuildFromImageStreamTag = "";
           }
         });
@@ -478,8 +478,8 @@ angular.module('openshiftConsole')
             $scope.options.pickedPushToImageStream = $scope.outputImageStream.imageStream;
             $scope.options.pickedPushToImageStreamTag = $scope.outputImageStream.tag;
           } else {
-            $scope.options.optionsModel.pickedPushToImageStream = "";
-            $scope.options.optionsModel.pickedPushToImageStreamTag = "";
+            $scope.options.pickedPushToImageStream = "";
+            $scope.options.pickedPushToImageStreamTag = "";
           }
         });
       }
@@ -676,4 +676,38 @@ angular.module('openshiftConsole')
         }
       );
     };
+
+    $scope.isNamespaceAvailable = function(namespace) {
+      if ($scope.availableProjects.contains(namespace)) {
+        return true;
+      }
+      return false;
+    };
+
+    $scope.inspectNamespace = function(imageStreams, pickedImageStream) {
+      if (imageStreams.length === 0) {
+        return "empty";
+      } 
+      if (imageStreams.length !== 0 && !imageStreams.contains(pickedImageStream)) {
+        return "noMatch";
+      }
+      return "";
+    };
+
+    $scope.inspectTags = function(tagHash, pickedImageStream, pickedTag) {
+      if (tagHash[pickedImageStream]) {
+        if (tagHash[pickedImageStream].length === 0) {
+          return "empty";
+        } 
+        if (tagHash[pickedImageStream].length !== 0 && !tagHash[pickedImageStream].contains(pickedTag)) {
+          return "noMatch";
+        }
+      }
+      return "";
+    };
+
+    $scope.showOutputTagWarning = function() {
+      return 
+    };
+
   });
