@@ -99,13 +99,13 @@ angular.module('openshiftConsole')
             $scope.buildStrategy = $filter('buildStrategy')($scope.updatedBuildConfig);
             $scope.strategyType = $scope.buildConfig.spec.strategy.type;
             $scope.envVars = $filter('envVarsPair')($scope.buildStrategy.env);
-            $scope.triggers = BuildConfigsService.getTriggerMap($scope.triggers, $scope.buildConfig.spec.triggers)
+            $scope.triggers = $scope.getTriggerMap($scope.triggers, $scope.buildConfig.spec.triggers)
             $scope.pickedTriggers = $scope.triggers;
             $scope.sources = $scope.getSourceMap($scope.sources, $scope.buildConfig.spec.source);
 
             if ($scope.buildStrategy.from) {
               var buildFrom = $scope.buildStrategy.from;
-              BuildConfigsService.setBuildFromVariables(
+              $scope.setBuildFromVariables(
                 $scope.options,
                 buildFrom.kind,
                 buildFrom.namespace || buildConfig.metadata.namespace, 
@@ -114,12 +114,12 @@ angular.module('openshiftConsole')
                 (buildFrom.kind === "ImageStreamImage") ? buildFrom.name : "",
                 (buildFrom.kind === "ImageStreamTag") ? buildConfig.metadata.namespace + "/" + buildFrom.name : buildFrom.name);
             } else {
-              BuildConfigsService.setBuildFromVariables($scope.options, "None", buildConfig.metadata.namespace, "", "", "");
+              $scope.setBuildFromVariables($scope.options, "None", buildConfig.metadata.namespace, "", "", "");
             }
 
             if ($scope.updatedBuildConfig.spec.output.to) {
               var pushTo = $scope.updatedBuildConfig.spec.output.to
-              BuildConfigsService.setPushToVariables(
+              $scope.setPushToVariables(
                 $scope.options,
                 pushTo.kind,
                 pushTo.namespace || buildConfig.metadata.namespace,
@@ -127,7 +127,7 @@ angular.module('openshiftConsole')
                 pushTo.name.split(":")[1],
                 (pushTo.kind === "ImageStreamTag") ? buildConfig.metadata.namespace + "/" + pushTo.name : pushTo.name);
             } else {
-              BuildConfigsService.setPushToVariables($scope.options, "None", buildConfig.metadata.namespace, "", "", "");
+              $scope.setPushToVariables($scope.options, "None", buildConfig.metadata.namespace, "", "", "");
             }
 
             $scope.builderImageStream = {
@@ -248,6 +248,44 @@ angular.module('openshiftConsole')
       })
     );
 
+    $scope.getTriggerMap = function(triggerMap, triggers) {
+      triggers.forEach(function(value) {
+        switch (value.type) {
+          case "Generic":
+            break;
+          case "GitHub":
+            triggerMap.webhook = true;
+            break;
+          case "ImageChange":
+            triggerMap.imageChange = true;
+            break;
+          case "ConfigChange":
+            triggerMap.configChange = true;
+            break;
+        }
+      });
+      return triggerMap;
+    };
+
+    $scope.setBuildFromVariables = function(optionsModel, type, ns, is, ist, isi, di) {
+      optionsModel.pickedBuildFromType = type;
+      optionsModel.pickedBuildFromNamespace = ns;
+      optionsModel.pickedBuildFromImageStream = is;
+      optionsModel.pickedBuildFromImageStreamTag = ist;
+      optionsModel.pickedBuildFromImageStreamImage = isi;
+      optionsModel.pickedBuildFromDockerImage = di;
+      return optionsModel;
+    };
+
+    $scope.setPushToVariables = function(optionsModel, type, ns, is, ist, di) {
+      optionsModel.pickedPushToType = type;
+      optionsModel.pickedPushToNamespace = ns;
+      optionsModel.pickedPushToImageStream = is;
+      optionsModel.pickedPushToImageStreamTag = ist;
+      optionsModel.pickedPushToDockerImage = di;
+      return optionsModel;
+    };
+
     // When BuildFrom/PushTo/ImageBuildFrom type is change, appeared fields need to be filled with proper values.
     $scope.assambleInputType = function(type, pickedType) {
       switch (type) {
@@ -273,7 +311,7 @@ angular.module('openshiftConsole')
           }
           break;
       }
-    }
+    };
 
     $scope.aceLoaded = function(editor) {
       var session = editor.getSession();
@@ -346,7 +384,7 @@ angular.module('openshiftConsole')
           }
         });
       }
-    }
+    };
 
     // updateBuilderImageStreams creates/updates the list of imageStreams and imageStreamTags for the builder image from picked namespace.
     // As parameter takes the picked namespace, selectFirstOption as a boolean that indicates whether the imageStreams and imageStreamTags
@@ -414,7 +452,7 @@ angular.module('openshiftConsole')
           }
         });
       }
-    }
+    };
 
     // updateOutputImageStreams creates/updates the list of imageStreams and imageStreamTags for the output image from picked namespace.
     // As parameter takes the picked namespace, selectFirstOption as a boolean that indicates whether the imageStreams and imageStreamTags
@@ -466,7 +504,7 @@ angular.module('openshiftConsole')
           }
         });
       }
-    }
+    };
 
     $scope.clearSelectedTag = function(tagHash, pickedImageStream) {
       var tags = tagHash[pickedImageStream];
@@ -475,7 +513,7 @@ angular.module('openshiftConsole')
       } else {
         return  "latest";
       }
-    }
+    };
 
     // Check if the namespace is available. If so add him to available namespaces and remove him from unavailable 
     $scope.checkNamespaceAvailability = function(ns, type) {
@@ -483,21 +521,8 @@ angular.module('openshiftConsole')
       .then(function() {
         $scope.availableProjects.push(ns);
       }, function(result) {
-        if (result.status === 403) {
-          $scope.alerts["load-" + ns] = {
-            type: "error",
-            message: "Project '" + ns + "' is not available for your account.",
-            details: "Reason: " + $filter('getErrorDetails')(result)
-          };
-        } else {
-          $scope.alerts["load-" + ns] = {
-            type: "error",
-            message: "An error occurred loading the " + ns + " project.",
-            details: "Reason: " + $filter('getErrorDetails')(result)
-          };
-        }
       });
-    }
+    };
 
     $scope.save = function() {
       $scope.disableInputs = true;
@@ -600,7 +625,7 @@ angular.module('openshiftConsole')
       }
 
       // Update envVars
-      $filter('buildStrategy')($scope.updatedBuildConfig).env = BuildConfigsService.updateEnvVars($scope.envVars);
+      $filter('buildStrategy')($scope.updatedBuildConfig).env = $filter('updateEnvVars')($scope.envVars);
 
       // Update triggers
       var triggers = [];
@@ -678,7 +703,7 @@ angular.module('openshiftConsole')
     };
 
     $scope.inspectTags = function(tagHash, pickedImageStream, pickedTag) {
-      if (tagHash[pickedImageStream]) {
+      if (tagHash[pickedImageStream] && pickedImageStream !== '') {
         if (tagHash[pickedImageStream].length === 0) {
           return "empty";
         } 

@@ -252,6 +252,19 @@ angular.module('openshiftConsole')
       return pairs;
     };
   })
+  .filter('updateEnvVars', function() {
+    return function(envVars) {
+      var updatedEnvVars = [];
+      angular.forEach(envVars, function(v, k) {
+        var env = {
+          name: k,
+          value: v
+        };
+        updatedEnvVars.push(env);
+      });
+      return updatedEnvVars;
+    };
+  })
   .filter('destinationSourcePair', function() {
     return function(destination) {
       var pairs = {};
