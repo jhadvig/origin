@@ -147,10 +147,6 @@ angular.module('openshiftConsole')
 
             $scope.options.forcePull = !!$scope.buildStrategy.forcePull;
 
-
-
-
-
             if ($scope.sources.images) {
               var imageSources = $scope.buildConfig.spec.source.images;
               $scope.imageSourcesBuildFrom = [];
@@ -194,10 +190,6 @@ angular.module('openshiftConsole')
               });
             }
 
-
-
-
-
             if ($scope.sources.binary) {
               $scope.options.binaryAsFile = ($scope.buildConfig.spec.source.binary.asFile) ? $scope.buildConfig.spec.source.binary.asFile : "";
             }
@@ -237,10 +229,7 @@ angular.module('openshiftConsole')
               var outputSelectFirstOption = $scope.outputOptions.pickedType === "DockerImage";
               $scope.updateOutputImageStreams($scope.outputOptions.pickedNamespace, outputSelectFirstOption);
 
-
-
               if ($scope.sources.images) {
-
                 var i = 0;
                 $scope.imageSourcesBuildFrom.forEach(function(imageSourceBuildFrom) {
 
@@ -256,11 +245,7 @@ angular.module('openshiftConsole')
                                                       imageSourceSelectFirstOption);
                   i += 1;
                 });
-
               }
-
-
-
             });
             $scope.loaded = true;
             // If we found the item successfully, watch for changes on it
@@ -337,20 +322,13 @@ angular.module('openshiftConsole')
             $scope.updateOutputImageStreams($scope.outputOptions.pickedNamespace, true);
           }
           break;
-        case "imageSource":
-          if ( pickedType === "DockerImage") {
-            $scope.imageSourceOptions.pickedDockerImage = $scope.imageSourceOptions.pickedNamespace + "/" + $scope.imageSourceOptions.pickedImageStream + ":" + $scope.imageSourceOptions.pickedTag;
-          } else if ( pickedType === "ImageStreamTag") {
-            $scope.updateImageSourceImageStreams($scope.imageSourceOptions.pickedNamespace, true);
-          }
-          break;
       }
     };
 
     $scope.assambleImageSourceType = function(imageSourceBuildFrom, imageSourceOptions, imageSourceImageStream, selectFirstOption) {
       if ( imageSourceOptions.pickedType === "DockerImage") {
         imageSourceOptions.pickedDockerImage = imageSourceOptions.pickedNamespace + "/" + imageSourceOptions.pickedImageStream + ":" + imageSourceOptions.pickedTag;
-      } else if ( pickedType === "ImageStreamTag") {
+      } else if ( imageSourceOptions.pickedType === "ImageStreamTag") {
         $scope.updateImageSourceImageStreams(imageSourceBuildFrom, imageSourceOptions, imageSourceImageStream, selectFirstOption);
       }
     };
@@ -665,12 +643,20 @@ angular.module('openshiftConsole')
 
       $scope.updateBinarySource();
 
-      // If imageSource is present update From and Paths.
-      // if ($scope.sources.images) {
-      //   $scope.updatedBuildConfig.spec.source.image.paths  = $scope.updatedImageSourcePath($scope.imageSourcePaths);
-      //   // Construct updated imageSource builder image object based on it's kind
-      //   $scope.updatedBuildConfig.spec.source.image.from = $scope.constructImageObject($scope.imageSourceOptions);
-      // }
+      // If imageSources are present update each ones From and Paths.
+      if ($scope.sources.images) {
+        var images = [];
+        var i = 0;
+        $scope.imageSourcesOptions.forEach(function(imageSourceOptions) {
+          var image = {};
+          image.paths  = $scope.updatedImageSourcePath($scope.imageSourcesPaths[i]);
+          // Construct updated imageSource builder image object based on it's kind
+          image.from = $scope.constructImageObject(imageSourceOptions);
+          images.push(image);
+          i += 1;
+        });
+        $scope.updatedBuildConfig.spec.source.images = images;
+      }
 
       // Construct updated builder image object based on it's kind
       if ($scope.builderOptions.pickedType === "None") {

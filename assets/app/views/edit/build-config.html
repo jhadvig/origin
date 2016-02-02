@@ -141,11 +141,7 @@
 
 
                       <div class="form-groups" ng-show="imageSourcesOptions.length !== 0">
-
-
                         <div ng-repeat="imageSourceOptions in imageSourcesOptions" class="imageSourceItem">
-
-
                           <div class="form-group">
                             <label for="imageSourceFrom">Image Source From</label>
                             <select 
@@ -250,13 +246,11 @@
                               key-title="Source Path"
                               value-title="Destination Dir"
                               prevent-empty="true"
-                              key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."></osc-key-values>
+                              key-validator="path"
+                              readonly-keys=""
+                              key-validation-tooltip="A valid Source Path is an absoluth path beginning with '/'"></osc-key-values>
                           </div>
-
-
                         </div>
-
-
                       </div>
                     </dl>
                   </div>

@@ -25,7 +25,7 @@
         </div>
         <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
         <div class="has-error" ng-show="form.key.$error.oscKeyValid">
-          <span class="help-block">Please enter a valid key
+          <span class="help-block">Please enter a valid {{setErrorText(keyValidator)}}
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a  data-toggle="tooltip" data-placement="right"
                 data-original-title="{{keyValidationTooltip}}">

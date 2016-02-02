@@ -54,6 +54,15 @@ angular.module("openshiftConsole")
         delete added[key];
       }
     };
+    $scope.setErrorText = function(keyTitle) {
+      if (keyTitle === 'path') {
+        return "absolute path";
+      } else if (keyTitle === 'label') {
+        return "label";
+      } else {
+        return "key";
+      }
+    };
   })
   .directive("oscInputValidator", function(){
 
@@ -95,7 +104,14 @@ angular.module("openshiftConsole")
               return validateSubdomain(parts[0]) && validateLabel(parts[1]);
           }
           return false;
+        },
+      path: function(modelValue, viewValue) {
+        var ABS_PATH_REGEXP = /^\//;
+        if (modelValue === undefined || modelValue === null || modelValue.trim().length === 0) {
+          return true;
         }
+        return ABS_PATH_REGEXP.test(viewValue);
+      }
     };
     return {
       require: ["ngModel", "^oscKeyValues"],
@@ -123,6 +139,7 @@ angular.module("openshiftConsole")
    *   - always: Any value is allowed (Default).
    *   - env:    Validate as an ENV var /^[A-Za-z_][A-Za-z0-9_]*$/i
    *   - label:  Validate as a label
+   *   - path:   Validate as an absolute path
    * deletePolicy:
    *  - always: allow any key/value pair (Default)
    *  - added:  allow any added not originally in entries
