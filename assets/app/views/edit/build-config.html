@@ -139,15 +139,16 @@
                               </div>
                             </div>
 
-                            <div class="form-groups" ng-show="imageSourcesOptions.length !== 0">
-                              <div ng-repeat="imageSourceOptions in imageSourcesOptions" class="image-source-item">
+                            <div class="form-groups" ng-show="sources.images">
+
+                              <div class="single-image-source" ng-if="sourceImages.length === 1">
                                 <div class="form-group">
                                   <label for="imageSourceFrom">Image Source From</label>
                                   <select 
                                     class="form-control simpleselector"
                                     ng-model="imageSourceOptions.pickedType"
-                                    ng-options="type.id as type.title for type in imageSourcesTypes"
-                                    ng-change="assambleImageSourceType(imageSourcesBuildFrom[$index], imageSourceOptions, imageSourcesImageStream[$index], true)">
+                                    ng-options="type.id as type.title for type in imageSourceTypes"
+                                    ng-change="assambleInputType('imageSource', imageSourceOptions.pickedType)">
                                   </select>
                                 </div>
 
@@ -157,11 +158,11 @@
                                       <label class="multiselector-label">Namespace</label>
                                       <span ng-if="!isNamespaceAvailable(imageSourceOptions.pickedNamespace)" data-toggle="tooltip" data-placement="right" title="Selected Namespace is not available." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                       <select
-                                        name="imageSourceNamespace-{{$index}}"
+                                        name="imageSourceNamespace"
                                         class="form-control multiselector select-imagesource-namespace"
                                         ng-model="imageSourceOptions.pickedNamespace"
-                                        ng-options="name for name in imageSourcesBuildFrom[$index].projects track by name"
-                                        ng-change="updateImageSourceImageStreams(imageSourcesBuildFrom[$index], imageSourceOptions, imageSourcesImageStream[$index], true)"
+                                        ng-options="name for name in imageSourceBuildFrom.projects track by name"
+                                        ng-change="updateImageSourceImageStreams(imageSourceOptions.pickedNamespace, true)"
                                         required>
                                       </select>
                                     </div>
@@ -170,14 +171,14 @@
                                   <div class="col-lg-4">
                                     <div class="label-with-selector">
                                       <label class="multiselector-label">Image Stream</label>
-                                      <span ng-if="inspectNamespace(imageSourcesBuildFrom[$index].imageStreams, imageSourceOptions.pickedImageStream) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain any Image Streams to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
-                                      <span ng-if="inspectNamespace(imageSourcesBuildFrom[$index].imageStreams, imageSourceOptions.pickedImageStream) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain Image Stream choosen Tag" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
+                                      <span  ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, imageSourceOptions.pickedImageStream) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain any Image Streams to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
+                                      <span  ng-if="inspectNamespace(imageSourceBuildFrom.imageStreams, imageSourceOptions.pickedImageStream) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Namespace doesn't contain Image Stream choosen Tag" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                       <select
-                                        name="imageSourceImageStream-{{$index}}"
+                                        name="imageSourceImageStream"
                                         class="form-control multiselector select-imagesource-name"
                                         ng-model="imageSourceOptions.pickedImageStream"
-                                        ng-options="name as name for name in imageSourcesBuildFrom[$index].imageStreams track by name"
-                                        ng-change="clearSelectedTag(imageSourceOptions, imageSourcesBuildFrom[$index].tags)"
+                                        ng-options="name as name for name in imageSourceBuildFrom.imageStreams track by name"
+                                        ng-change="clearSelectedTag(imageSourceOptions, imageSourceBuildFrom.tags)"
                                         required>
                                       </select>
                                     </div>
@@ -186,13 +187,13 @@
                                   <div class="col-lg-4">
                                     <div class="label-with-selector">
                                       <label class="multiselector-label">Tag</label>
-                                      <span ng-if="inspectTags(imageSourcesBuildFrom[$index].tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain any tagged image to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
-                                      <span ng-if="inspectTags(imageSourcesBuildFrom[$index].tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain choosen Tag." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
+                                      <span ng-if="inspectTags(imageSourceBuildFrom.tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'empty'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain any tagged image to build from." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
+                                      <span ng-if="inspectTags(imageSourceBuildFrom.tags, imageSourceOptions.pickedImageStream, imageSourceOptions.pickedTag) === 'noMatch'" data-toggle="tooltip" data-placement="right" title="Selected Image Stream doesn't contain choosen Tag." class="pficon pficon-error-circle-o" style="cursor: help;"></span>
                                       <select
-                                        name="imageSourceTag-{{$index}}"
+                                        name="imageSourceTag"
                                         class="form-control multiselector select-imagesource-tag"
                                         ng-model="imageSourceOptions.pickedTag"
-                                        ng-options="name as name for name in imageSourcesBuildFrom[$index].tags[imageSourceOptions.pickedImageStream] track by name"
+                                        ng-options="name as name for name in imageSourceBuildFrom.tags[imageSourceOptions.pickedImageStream] track by name"
                                         ng-disabled="imageSourceOptions.pickedImageStream === ''"
                                         required>
                                       </select>
@@ -205,7 +206,6 @@
                                   <div>
                                     <input class="form-control"
                                       type="text"
-                                      name="imageSourceImageStreamImage-{{$index}}"
                                       ng-model="imageSourceOptions.pickedImageStreamImage"
                                       placeholder="example: ruby-20-centos7@603bfa418"
                                       autocorrect="off"
@@ -221,7 +221,7 @@
                                   <div>
                                     <input class="form-control"
                                       id="imageSourceLink"
-                                      name="imageSourceLink-{{$index}}"
+                                      name="imageSourceLink"
                                       type="text"
                                       ng-model="imageSourceOptions.pickedDockerImage"
                                       placeholder="example: openshift/ruby-20-centos7:latest"
@@ -239,15 +239,23 @@
                                     </a>
                                   </span></label>
                                   <osc-key-values
-                                    entries="imageSourcesPaths[$index]"
+                                    entries="imageSourcePaths"
+                                    readonly-keys=""
                                     delimiter="="
                                     delete-policy="always"
+                                    key-validator="path"
                                     key-title="Source Path"
                                     value-title="Destination Dir"
                                     prevent-empty="true"
-                                    key-validator="path"
-                                    readonly-keys=""
                                     key-validation-tooltip="A valid Source Path is an absoluth path beginning with '/'"></osc-key-values>
+                                </div>
+                              </div>
+
+
+                              <div class="multiple-image-source" ng-if="sourceImages.length !== 1">
+                                <label for="imageSourceFrom">Image Source From</label>
+                                <div ng-repeat="fromObject in imageSourceFromObjects" class="imageSourceItem">
+                                  {{selectTypes[fromObject.kind]}}: {{fromObject | imageObjectRef : buildConfig.metadata.namespace}}
                                 </div>
                               </div>
                             </div>

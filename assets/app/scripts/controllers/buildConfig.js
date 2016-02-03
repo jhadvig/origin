@@ -47,18 +47,14 @@ angular.module('openshiftConsole')
             $scope.loaded = true;
             $scope.buildConfig = buildConfig;
 
-            var i = 0;
             if ($scope.buildConfig.spec.source.images) {
               $scope.imageSources = $scope.buildConfig.spec.source.images;
               $scope.imageSourcesPaths = [];
-
               $scope.imageSources.forEach(function(imageSource) {
                 $scope.imageSourcesPaths.push($filter('destinationSourcePair')(imageSource.paths));
               });
-              i += 1;
             }
             
-
             // If we found the item successfully, watch for changes on it
             watches.push(DataService.watchObject("buildconfigs", $routeParams.buildconfig, context, function(buildConfig, action) {
               if (action === "DELETED") {
