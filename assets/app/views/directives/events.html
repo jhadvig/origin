@@ -1,0 +1,36 @@
+<div class="middle-content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <table class="table table-bordered table-condensed table-mobile table-hover">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Reason</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody ng-if="(filteredEvents | hashSize) === 0">
+            <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+          </tbody>
+          <tbody class="events-table" ng-repeat="event in filteredEvents | orderBy:'-lastTimestamp'">
+            <tr>
+              <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
+              <td data-title="Reason" class="event-time">
+                <event-icon type="{{event.type}}"></event-icon>
+                {{event.reason}}
+              </td>
+              <td data-title="Message" class="word-break">
+                {{event.message}}
+                <span class="text-muted small" ng-if="event.count > 1">
+                  ({{event.count}} times in the last
+                    {{event.firstTimestamp | duration:event.lastTimestamp:true}})
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

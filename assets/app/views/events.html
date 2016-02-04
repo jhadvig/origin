@@ -39,9 +39,13 @@
                     <td class="hidden-sm hidden-md" data-title="Kind">
                       {{event.involvedObject.kind}}</td>
                     <td class="hidden-sm hidden-md" data-title="Reason">
+                      <event-icon type="{{event.type}}"></event-icon>
                       {{event.reason}}</td>
                     <td data-title="Message" class="word-break">
-                      <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.reason}}</div>
+                      <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
+                        <event-icon type="{{event.type}}"></event-icon>
+                        {{event.reason}}
+                      </div>
                       {{event.message}}
                       <span class="text-muted small" ng-if="event.count > 1">
                         ({{event.count}} times in the last
