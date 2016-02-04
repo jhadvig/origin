@@ -120,6 +120,11 @@
                     </div>
     	            </uib-tab>
 
+                  <uib-tab active="selectedTab.events">
+                    <uib-tab-heading>Events</uib-tab-heading>
+                    <events kind="pod" ng-if="selectedTab.events"></events>
+                  </uib-tab>
+
                 </uib-tabset>
               </div><!-- /col-* -->
             </div>
