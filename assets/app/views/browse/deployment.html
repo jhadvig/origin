@@ -79,7 +79,7 @@
                       follow-affix-bottom="90"
                       resource="deploymentconfigs/log"
                       name="deploymentConfigName"
-                      context="logContext"
+                      context="projectContext"
                       options="logOptions"
                       status="deployment | deploymentStatus"
                       start="deployment.metadata.creationTimestamp | date : 'short'"
@@ -88,7 +88,7 @@
                   </uib-tab>
                   <uib-tab active="selectedTab.events">
                     <uib-tab-heading>Events</uib-tab-heading>
-                    <events kind="deployment" ng-if="selectedTab.events"></events>
+                    <events resource-kind="Deployment" resource-name="{{deployment.metadata.name}}" parent-scope="$parent" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>
               </div><!-- /col-* -->

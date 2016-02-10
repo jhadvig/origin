@@ -62,7 +62,7 @@ angular.module('openshiftConsole')
         // FIXME: DataService.createStream() requires a scope with a
         // projectPromise rather than just a namespace, so we have to pass the
         // context into the log-viewer directive.
-        $scope.logContext = context;
+        $scope.projectContext = context;
 
         var watchActiveDeployment = function() {
           // Watch all replication controllers so we know if this is the active deployment to enable scaling.
@@ -78,7 +78,7 @@ angular.module('openshiftConsole')
               }
             });
             activeDeployment = DeploymentsService.getActiveDeployment(deploymentsForConfig);
-            $scope.logContext.container = $filter("annotation")(activeDeployment, "pod");
+            $scope.projectContext.container = $filter("annotation")(activeDeployment, "pod");
             $scope.isActive = activeDeployment && activeDeployment.metadata.uid === $scope.deployment.metadata.uid;
             $scope.logCanRun = !(_.includes(['New', 'Pending'], $filter('deploymentStatus')(activeDeployment)));
           }));

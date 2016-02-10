@@ -1,62 +1,43 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('eventIcon', function() {
-    return {
-      restrict: "E",
-      scope: false,
-      template: '<span class="pficon {{type | eventIcon}}" aria-hidden="true" data-toggle="tooltip" data-placement="right"' +
-                'data-original-title="{{type}}"></span>',
-      replace: true,
-      link: function(scope, element, attrs) {
-        scope.type = attrs.type;
-      }
-    };
-  })
   .directive('events', function($routeParams, $filter, DataService, ProjectsService, Logger) {
     return {
       restrict: 'E',
       scope: {
-        kind: "@",
+        resourceKind: "@",
+        resourceName: "@",
+        parentScope: "="
       },
       templateUrl: 'views/directives/events.html',
       controller: function($scope){
 
-        var filterEvent = function(resourceType, resource, event) {
-          var involvedObjectKind;
-          if (resourceType === "pod") {
-            involvedObjectKind = "Pod";
-          } else if (resourceType === "service") {
-            involvedObjectKind = "Service";
-          } else if (resourceType === "deploymentconfig") {
-            involvedObjectKind = "DeploymentConfig";
-          } else if (resourceType === "deployment") {
-            involvedObjectKind = "ReplicationController";
-          } else if (resourceType === "build") {
-            involvedObjectKind = "Pod";
-            return (event.involvedObject.kind === involvedObjectKind) && (event.involvedObject.name === resource + "-build");
+        var filterEvent = function(event) {
+          var resourceName = $scope.resourceName;
+          var resourceKind = $scope.resourceKind;
+          // For Build resource watch events from the builder Pod
+          if (resourceKind === "Build") {
+            resourceKind = "Pod";
+            resourceName = $scope.parentScope.build.metadata.annotations["openshift.io/build.pod-name"];
+          } else if (resourceKind === "Deployment") {
+            // For Deployment resource watch ReplicationController events
+            resourceKind = "ReplicationController";
           }
-          return (event.involvedObject.kind === involvedObjectKind) && (event.involvedObject.name === resource);
+          return (event.involvedObject.kind === resourceKind) && (event.involvedObject.name === resourceName);
         };
 
         var watches = [];
-        ProjectsService
-          .get($routeParams.project)
-          .then(_.spread(function(project, context) {
-            $scope.project = project;
-            watches.push(DataService.watch("events", context, function(events) {
-              $scope.emptyMessage = "No events to show";
-              $scope.eventsArray = $filter('toArray')(events.by("metadata.name"));
-              $scope.filteredEvents = _.filter($scope.eventsArray, function(event) { 
-                return filterEvent($scope.kind, $routeParams[$scope.kind], event);
-              });
-              Logger.log("events (subscribe)", $scope.events);
-            }));
+        watches.push(DataService.watch("events", $scope.parentScope.projectContext, function(events) {
+          $scope.emptyMessage = "No events to show";
+          // $scope.eventsArray = $filter('toArray')(events.by("metadata.name"));
+          $scope.filteredEvents = _.filter(events.by("metadata.name"), filterEvent);
+          Logger.log("events (subscribe)", $scope.events);
+        }));
 
-            $scope.$on('$destroy', function(){
-              DataService.unwatchAll(watches);
-            });
-          }));
+        $scope.$on('$destroy', function(){
+          DataService.unwatchAll(watches);
+        });
+
       },
     };
   });
