@@ -209,7 +209,7 @@
                   </uib-tab>
                   <uib-tab active="selectedTab.events">
                     <uib-tab-heading>Events</uib-tab-heading>
-                    <events kind="deploymentconfig" ng-if="selectedTab.events"></events>
+                    <events resource-kind="DeploymentConfig" resource-name="{{deploymentConfig.metadata.name}}" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>
               </div><!-- /col-* -->

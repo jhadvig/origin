@@ -122,7 +122,7 @@
 
                   <uib-tab active="selectedTab.events">
                     <uib-tab-heading>Events</uib-tab-heading>
-                    <events kind="pod" ng-if="selectedTab.events"></events>
+                    <events resource-kind="Pod" resource-name="{{pod.metadata.name}}" ng-if="selectedTab.events"></events>
                   </uib-tab>
 
                 </uib-tabset>

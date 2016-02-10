@@ -211,11 +211,6 @@ angular.module('openshiftConsole')
       return link;
     };
   })
-  .filter('eventIcon', function() {
-    return function(type) {
-      return (type === "Normal") ? "pficon-info" : "pficon-warning-triangle-o";
-    };
-  })
   .filter('yesNo', function() {
       return function(isTrue) {
           return isTrue ? 'Yes' : 'No';

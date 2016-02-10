@@ -103,7 +103,7 @@
 
                     <uib-tab active="selectedTab.events">
                       <uib-tab-heading>Events</uib-tab-heading>
-                      <events kind="build" ng-if="selectedTab.events"></events>
+                      <events resource-kind="Build" resource-name="{{build.metadata.name}}" ng-if="selectedTab.events"></events>
                     </uib-tab>
                   </uib-tabset>
 
