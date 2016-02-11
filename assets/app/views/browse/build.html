@@ -12,7 +12,8 @@
             <div ng-if="build">
               <h1>
                 {{build.metadata.name}}
-                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
+                <span ng-if="isPaused() && !build.metadata.message" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="Building from build configuration {{buildConfig.metadata.name}} has been paused."></span>
                 <small class="meta">created <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></small>
                 <div class="pull-right dropdown">
                   <!-- Primary Actions -->

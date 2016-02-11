@@ -11,6 +11,7 @@
             <div ng-if="buildConfig">
               <h1>
                 {{buildConfig.metadata.name}}
+                <span ng-if="isPaused()" class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: middle;" data-toggle="popover" data-placement="bottom" data-trigger="hover" dynamic-content="Building from build configuration {{buildConfig.metadata.name}} has been paused."></span>
                 <div class="pull-right dropdown">
                   <!-- Primary Actions -->
                   <button

@@ -102,5 +102,33 @@ angular.module("openshiftConsole")
       return buildConfigBuildsInProgress;
     };
 
+    BuildsService.prototype.isPaused = function(buildConfig) {
+      if (!buildConfig) {
+        return false;
+      }
+      return (buildConfig.metadata.annotations && buildConfig.metadata.annotations["openshift.io/build-config.paused"] === "true");
+    };
+
+    BuildsService.prototype.canBuild = function(buildConfig, buildConfigBuildsInProgressMap) {
+      if (!buildConfig) {
+        return false;
+      }
+
+      if (buildConfig.metadata.deletionTimestamp) {
+        return false;
+      }
+
+      if (buildConfigBuildsInProgressMap &&
+          $filter('hashSize')(buildConfigBuildsInProgressMap[buildConfig.metadata.name]) > 0) {
+        return false;
+      }
+
+      if (buildConfig.metadata.annotations && buildConfig.metadata.annotations["openshift.io/build-config.paused"] === "true") {
+        return false;
+      }
+
+      return true;
+    };
+
     return new BuildsService();
   });
