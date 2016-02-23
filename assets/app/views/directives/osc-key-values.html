@@ -20,7 +20,8 @@
               autocapitalize="off"
               spellcheck="false"
               osc-input-validator="key"
-              osc-unique="entries">
+              osc-unique="entries"
+              on-enter="addEntry()">
           </div>
 
           <div
@@ -37,14 +38,16 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              osc-input-validator="value">
+              osc-input-validator="value"
+              on-enter="addEntry()">
           </div>
-          <button
-            class="btn btn-default"
-            ng-click="addEntry()"
-            ng-disabled="form.$invalid || !key || !value">Add</button>
+          <a class="btn btn-default"
+            href=""
+            role="button"
+            ng-disabled="form.$invalid || !key || !value">
+            Add
+          </a>
         </div>
-
 
         <div row class="has-error" ng-show="form.key.$error.oscUnique">
           <span class="help-block">
