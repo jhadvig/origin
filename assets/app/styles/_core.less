@@ -151,6 +151,14 @@
   display: none;
 }
 
+.modal-template-add .nav-tabs {
+  text-align: center;
+  > li {
+    float: none;
+    display: inline-block;
+  }
+}
+
 .empty-project {
   margin: 10px auto;
   max-width: 500px;
@@ -778,7 +786,8 @@ a.disabled-link {
   color: inherit;
 }
 
-.modal-resource-edit {
+.modal-resource-edit,
+.modal-template-add {
   .editor {
     font-family: @font-family-monospace;
     line-height: 1.5;

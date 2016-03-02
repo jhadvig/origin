@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
+  .controller('CreateController', function ($routeParams, $scope, $uibModal, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -76,6 +76,45 @@ angular.module('openshiftConsole')
 
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
+    };
+
+    $scope.openAddTemplateModal = function() {
+      $scope.newTemplate = 'karol';
+      if ($scope.alerts) {
+        delete $scope.alerts['create-template'];
+      }
+
+      var modalInstance = $uibModal.open({
+        animation: true,
+        templateUrl: 'views/modals/addTemplate.html',
+        controller: 'AddTemplateController',
+        scope: $scope,
+        size: 'lg',
+        backdrop: 'static'
+      });
+
+      modalInstance.result.then(function(result) {
+        if ($scope.alerts) {
+          switch (result) {
+          case 'no-template':
+            $scope.alerts['create-template'] = {
+              type: "warning",
+              message: "There was no template submitted to create. Creation cancelled."
+            };
+            break;
+          case 'create':
+            $scope.alerts['create-template'] = {
+              type: "success",
+              message: "Template $$$ was updated."
+            };
+            break;
+          default:
+            Logger.warn('Unknown edit modal result: ' + result);
+          }
+        }
+      });
+
+      return;
     };
 
     // Check if tag in is in the array of tags. Substring matching is optional

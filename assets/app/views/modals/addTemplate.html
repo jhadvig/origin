@@ -1,0 +1,38 @@
+<div class="modal-template-add">
+  <div class="modal-header">
+  <h2><i class="fa fa-magic" aria-hidden="true"></i> Add Template</h2>
+  </div>
+  <div class="modal-body">
+
+  <uib-tabset class="center">
+    <uib-tab heading="Upload Template" active="selectedTab.upload">
+      <form>
+        <div class="form-group">
+          <div class="row">
+            <div class="col-sm-8 col-sm-offset-2">
+              <osc-file-input model="" help-text="Upload file from local drive"></osc-file-input>
+            </div>
+          </div>
+        </div>
+      </form>
+    </uib-tab>
+
+    <uib-tab heading="Paste Template" active="selectedTab.paste">
+      <div ui-ace="{
+        mode: 'yaml',
+        theme: 'eclipse',
+        onLoad: aceLoaded,
+        rendererOptions: {
+          fadeFoldWidgets: true,
+          showPrintMargin: false
+        }
+      }" ng-model="newTemplate" class="editor ace_editor-bordered yaml-mode"></div>
+    </uib-tab>
+  </uib-tabset>
+
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="create()">Create</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel()">Cancel</button>
+  </div>
+</div>

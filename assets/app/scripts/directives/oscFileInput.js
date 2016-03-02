@@ -29,6 +29,9 @@ angular.module('openshiftConsole')
             scope.uploadError = true;
             Logger.error("Could not read file", e);
           };
+          console.log('----------');
+          console.log(file);
+          console.log('----------');
           reader.readAsText(file);
         });
       }

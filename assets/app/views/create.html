@@ -13,6 +13,7 @@
               <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
               <li class="active"><strong>Add to Project</strong></li>
             </ol>
+            <alerts alerts="alerts"></alerts>
             <div class="row">
               <div class="col-md-12">
                 <p ng-if="emptyCatalog && !loaded">Loading...</p>
@@ -39,7 +40,17 @@
                 <p ng-if="emptyCatalog && loaded && nonBuilderImages.length">No builder images or templates.</p>
 
                 <div ng-show="!emptyCatalog">
-                  <h1>Select Image or Template</h1>
+                  <h1>
+                    Select Image or Template
+                    <div class="pull-right dropdown">
+                      <!-- Primary Actions -->
+                      <button
+                          class="btn btn-default"
+                          ng-click="openAddTemplateModal()">
+                        Add Template
+                      </button>
+                    </div>
+                  </h1>
 
                   <div class="row">
                     <!-- Right padding to line up cleanly with the left column tiles. -->
