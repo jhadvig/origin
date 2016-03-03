@@ -9,7 +9,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, ProjectsService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, ProjectsService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter, TemplateService) {
 
 
     var name = $routeParams.name;
@@ -38,6 +38,9 @@ angular.module('openshiftConsole')
         title: name
       }
     ];
+
+    $scope.template = TemplateService.getTemplate();
+    TemplateService.clearTemplate();
 
     var displayNameFilter = $filter('displayName');
     var humanize = $filter('humanize');
@@ -138,7 +141,7 @@ angular.module('openshiftConsole')
               TaskList.clear();
               TaskList.add(titles, helpLinks, function() {
                 var d = $q.defer();
-                DataService.createList(config.objects, context).then(
+                DataService.listAction(config.objects, context).then(
                   function(result) {
                     var alerts = [];
                     var hasErrors = false;
@@ -188,17 +191,25 @@ angular.module('openshiftConsole')
           );
         };
 
-        DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
-          function(template) {
-            $scope.template = template;
-            $scope.templateImages = imageItems(template);
-            $scope.hasParameters = $scope.template.parameters && $scope.template.parameters.length > 0;
-            $scope.templateUrl = template.metadata.selfLink;
-            template.labels = template.labels || {};
-          },
-          function() {
-            Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
-          });
+        function setTemplateParams() {
+          $scope.templateImages = imageItems($scope.template);
+          $scope.hasParameters = $scope.template.parameters && $scope.template.parameters.length > 0;
+          $scope.templateUrl = $scope.template.metadata.selfLink;
+          $scope.template.labels = $scope.template.labels || {};
+        }
+
+        if (_.isEmpty($scope.template)) {
+          DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
+            function(template) {
+              $scope.template = template;
+              setTemplateParams();
+            },
+            function() {
+              Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
+            });
+        } else {
+          setTemplateParams();
+        }
 
     }));
 

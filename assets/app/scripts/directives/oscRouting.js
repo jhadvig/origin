@@ -34,6 +34,14 @@ angular.module("openshiftConsole")
         routingDisabled: "="
       },
       templateUrl: 'views/directives/osc-routing.html',
+      controller: function($scope) {
+        $scope.checkTslTermination = function() {
+          if (!$scope.route.tls || !$scope.route.tls.termination || $scope.route.tls.termination === 'passthrough') {
+            return true;
+          }
+          return false;
+        };
+      },
       link: function(scope, element, attrs, formCtl){
         scope.form = formCtl;
 

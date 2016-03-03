@@ -236,16 +236,22 @@ angular.module('openshiftConsole')
 
   // objects:   Array of API object data(eg. [{ kind: "Build", parameters: { ... } }] )
   // context:   API context (e.g. {project: "..."})
-  // opts:      http - options to pass to the inner $http call
+  // opts:      action - defines the REST action that will be called
+  //                   - available actions: Create, Update
+  //                   - default action: Create
+  //            http - options to pass to the inner $http call
   // Returns a promise resolved with an an object like: { success: [], failure: [] }
   // where success and failure contain an array of results from the individual
   // create calls.
-  DataService.prototype.createList = function(objects, context, opts) {
-    var result = $q.defer();
-    var successResults = [];
-    var failureResults = [];
-    var self = this;
-    var remaining = objects.length;
+  DataService.prototype.listAction = function(objects, context, opts) {
+    var result = $q.defer(),
+        successResults = [],
+        failureResults = [],
+        self = this,
+        remaining = objects.length;
+
+    opts = opts || {};
+    var action = opts.action || "";
 
     function _checkDone() {
       if (remaining === 0) {
@@ -270,22 +276,41 @@ angular.module('openshiftConsole')
         return;
       }
 
-      self.create(resource, null, object, context, opts).then(
-        function (data) {
-          // include the original object, so the error handler can display the kind/name
-          data.object = object;
-          successResults.push(data);
-          remaining--;
-          _checkDone();
-        },
-        function (data) {
-          // include the original object, so the handler can display the kind/name
-          data.object = object;
-          failureResults.push(data);
-          remaining--;
-          _checkDone();
-        }
-      );
+      if (action === "update") {
+        self.update(resource, object.metadata.name, object, context, opts).then(
+          function (data) {
+            // include the original object, so the error handler can display the kind/name
+            data.object = object;
+            successResults.push(data);
+            remaining--;
+            _checkDone();
+          },
+          function (data) {
+            // include the original object, so the handler can display the kind/name
+            data.object = object;
+            failureResults.push(data);
+            remaining--;
+            _checkDone();
+          }
+        );
+      } else {
+        self.create(resource, null, object, context, opts).then(
+          function (data) {
+            // include the original object, so the error handler can display the kind/name
+            data.object = object;
+            successResults.push(data);
+            remaining--;
+            _checkDone();
+          },
+          function (data) {
+            // include the original object, so the handler can display the kind/name
+            data.object = object;
+            failureResults.push(data);
+            remaining--;
+            _checkDone();
+          }
+        );
+      }
     });
     return result.promise;
   };

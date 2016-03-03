@@ -389,6 +389,21 @@ label.checkbox {
   }
 }
 
+.default-padding {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.show-drag-and-drop-area {
+  border-style: dashed;
+  border-color: rgb(136, 136, 136);
+  border-width: 3px;
+}
+
+.highlight-drag-and-drop-area {
+  border-color: #0099d3;
+}
+
 .icon-xl {
   font-size: 128px;
 }
@@ -827,7 +842,10 @@ a.disabled-link {
   vertical-align: middle;
 }
 
-.modal-resource-delete, .modal-confirm-scale {
+.modal-resource-delete,
+.modal-resource-update,
+.modal-resource-process,
+.modal-confirm-scale {
   background-color: @gray-lighter;
   h1 {
     font-size: 21px;
