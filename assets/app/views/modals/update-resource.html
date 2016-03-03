@@ -1,0 +1,10 @@
+<div class="modal-resource-delete">
+  <div class="modal-body">
+    <h1>{{resourceKind | humanize}} '<strong>{{resourceName}}</strong>' already exists</h1>
+    <p>Do you want to replace the current '<strong>{{resourceName}}</strong>' {{resourceKind | humanize}} with the submitted one?</p>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-primary" type="button" ng-click="update();">Update</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel();">Cancel</button>
+  </div>
+</div>

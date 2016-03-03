@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
+  .controller('CreateController', function ($uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -79,6 +79,12 @@ angular.module('openshiftConsole')
       keyword: '',
       tag: ''
     };
+    $scope.alerts = {};
+
+    $scope.editor = {
+      content: "",
+      fileExtension: ""
+    };
 
     $scope.breadcrumbs = [
       {
@@ -93,6 +99,132 @@ angular.module('openshiftConsole')
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
     };
+
+    $scope.aceLoaded = function(editor) {
+      var session = editor.getSession();
+      session.setOption('tabSize', 2);
+      session.setOption('useSoftTabs', true);
+      editor.setDragDelay = 0;
+      editor.$blockScrolling = Infinity;
+
+      $('.from-file .editor').animate({
+        height: Math.floor(window.innerHeight * 0.50) + 'px'
+      }, 30, function() {
+        editor.resize();
+      });
+    };
+
+    $scope.create = function() {
+      delete $scope.alerts['create'];
+      delete $scope.alerts['parsing'];
+      var resource;
+      if ($scope.editor.fileExtension === "yaml") {
+        try {
+          resource = YAML.parse($scope.editor.content);
+        } catch (e) {
+          $scope.alerts['parsing'] = {
+            type: "error",
+            message: "An error occurred during parsing editors content.",
+            details: "Reason: " + $filter('getErrorDetails')(e)
+          };
+          return;
+        }
+      } else if ($scope.editor.fileExtension === "json") {
+        try {
+          resource = JSON.parse($scope.editor.content);
+        } catch (e) {
+          $scope.alerts['parsing'] = {
+            type: "error",
+            message: "An error occurred during parsing editors content.",
+            details: "Reason: " + $filter('getErrorDetails')(e)
+          };
+          return;
+        }
+      } else {
+        try {
+          resource = JSON.parse($scope.editor.content);
+        } catch (e) {
+          try {
+            resource = YAML.parse($scope.editor.content);
+          } catch (e) {
+            $scope.alerts['parsing'] = {
+              type: "error",
+              message: "An error occurred during parsing editors content.",
+              details: "Reason: " + $filter('getErrorDetails')(e)
+            };
+            return;
+          }
+        }
+      }
+
+      $scope.resourceKind = resource.kind;
+      $scope.resourceName = resource.metadata.name;
+
+      DataService.get(APIService.kindToResource($scope.resourceKind), $scope.resourceName, {namespace: $scope.projectName}).then(
+        function() {
+          var modalInstance = $uibModal.open({
+            animation: true,
+            templateUrl: 'views/modals/update-resource.html',
+            controller: 'UpdateModalController',
+            scope: $scope
+          });
+          modalInstance.result.then(function() {
+
+            DataService.delete(APIService.kindToResource($scope.resourceKind), $scope.resourceName, {namespace: $scope.projectName}).then(
+              function() {
+                createResource(resource);
+              },
+              // delete resource failure.
+              function(result) {
+                $scope.alerts['create'] = {
+                  type: "error",
+                  message: "An error occurred creating the component.",
+                  details: $filter('getErrorDetails')(result)
+                };
+              }
+            );
+          });
+        },
+        function() {
+          createResource(resource, true);
+      });
+    };
+
+
+    function createResource(resource, createAction) {
+      DataService.create(APIService.kindToResource($scope.resourceKind), null, resource, {namespace: $scope.projectName}).then(
+        // success
+        function() {
+          var action = (createAction) ? "created" : "updated";
+          AlertMessageService.addAlert({
+            name: $scope.resourceName,
+            data: {
+              type: "success",
+              message: $scope.resourceKind + " " + $scope.resourceName + " was successfully " + action + "."
+            }
+          });
+          if ($scope.resourceKind === "Template") {
+            // $location.path("project/" + encodeURIComponent($scope.projectName) + "/create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName));
+            location.assign("project/" + encodeURIComponent($scope.projectName) + "/create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName));
+          } else if ($scope.resourceKind === "ImageStream") {
+            var tag = resource.metadata.name;
+            // $location.path("/project/" + encodeURIComponent($scope.projectName) + "/create/fromimage?imageName=" + $scope.resourceName + "&imageTag=" + tag + "&namespace=" + encodeURIComponent($scope.projectName));
+            location.assign("project/" + encodeURIComponent($scope.projectName) + "/create/fromimage?imageName=" + $scope.resourceName + "&imageTag=" + tag + "&namespace=" + encodeURIComponent($scope.projectName));
+          } else {
+            window.history.back();
+          }
+        },
+        // update resource failure
+        function(result) {
+          var action = (createAction) ? "creating" : "updating";
+          $scope.alerts['create'] = {
+            type: "error",
+            message: "An error occurred " + action + " the component.",
+            details: $filter('getErrorDetails')(result)
+          };
+        }
+      );
+    }
 
     // Check if tag in is in the array of tags. Substring matching is optional
     // and useful for typeahead search. Typing "jav" should match tag "java".
