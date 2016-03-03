@@ -41,15 +41,7 @@
 
                 <div ng-show="!emptyCatalog">
                   <h1>
-                    Select Image or Template
-                    <div class="pull-right dropdown">
-                      <!-- Primary Actions -->
-                      <button
-                          class="btn btn-default"
-                          ng-click="openAddTemplateModal()">
-                        Add Template
-                      </button>
-                    </div>
+                    Add component to your Application
                   </h1>
 
                   <div class="row">
@@ -109,6 +101,16 @@
                         </dt>
                         <dd>Creates a predefined set of resources.</dd>
                       </dl>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-sm-12">
+                    <button
+                        class="btn btn-default btn-lg upload-btn"
+                        ng-click="openAddTemplateModal()">
+                      Upload JSON/YAML
+                    </button>
                     </div>
                   </div>
 
