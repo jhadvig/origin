@@ -9,7 +9,6 @@ angular.module('openshiftConsole')
         required: "=",
         disabled: "=ngDisabled",
         helpText: "@?",
-        fileExtension: "=?",
         dropArea: "@?"
       },
       templateUrl: 'views/directives/osc-file-input.html',
@@ -28,8 +27,6 @@ angular.module('openshiftConsole')
             scope.$apply(function(){
               scope.fileName = file.name;
               scope.model = reader.result;
-              var splittedName = file.name.split(".");
-              scope.fileExtension = splittedName[splittedName.length-1];
             });
           };
           reader.onerror = function(e){

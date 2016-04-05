@@ -186,11 +186,12 @@
                               fadeFoldWidgets: true,
                               showPrintMargin: false
                             }
-                          }" ng-model="editor.content" class="editor ace_editor-bordered yaml-mode"></div>
+                          }" ng-model="editor.content" class="editor ace_editor-bordered yaml-mode" id="add_component_editor" required></div>
                           <div class="buttons gutter-top-bottom">
                             <button
                               type="submit"
                               ng-click="create()"
+                              ng-disabled="editor.empty"
                               class="btn btn-primary btn-lg">
                               Add
                             </button>

@@ -79,11 +79,19 @@ angular.module('openshiftConsole')
       keyword: '',
       tag: ''
     };
-    $scope.alerts = {};
+
+    $scope.alerts = $scope.alerts || {};
+
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     $scope.editor = {
       content: "",
-      fileExtension: ""
+      fileExtension: "",
+      empty: true,
+      session: {}
     };
 
     $scope.breadcrumbs = [
@@ -101,9 +109,9 @@ angular.module('openshiftConsole')
     };
 
     $scope.aceLoaded = function(editor) {
-      var session = editor.getSession();
-      session.setOption('tabSize', 2);
-      session.setOption('useSoftTabs', true);
+      $scope.editor.session = editor.getSession();
+      $scope.editor.session.setOption('tabSize', 2);
+      $scope.editor.session.setOption('useSoftTabs', true);
       editor.setDragDelay = 0;
       editor.$blockScrolling = Infinity;
 
@@ -114,116 +122,196 @@ angular.module('openshiftConsole')
       });
     };
 
+    // 
+    $scope.aceChanged = function() {
+      $scope.editor.empty = false;
+      if (!$scope.editor.content) {
+        $scope.editor.empty = true;
+      }
+      try {
+        JSON.parse($scope.editor.content);
+        $scope.editor.session.setMode("ace/mode/json");
+      } catch (e) {
+        try {
+          YAML.parse($scope.editor.content);
+          $scope.editor.session.setMode("ace/mode/yaml");
+        } catch (e) {
+          return;
+        }
+      }
+    };
+
     $scope.create = function() {
       delete $scope.alerts['create'];
       delete $scope.alerts['parsing'];
       var resource;
-      if ($scope.editor.fileExtension === "yaml") {
+
+      // Trying to auto-detect what format the input is in. Since parsing JSON throws only SyntexError
+      // exception if the string to parse is not valid JSON, it is tried first and then the YAML parser
+      // is trying to parse the string. If that fails it will print the reason. In case the real reason
+      // is JSON related the printed reason will be "Reason: Unable to parse", in case of YAML related
+      // reason the true reason will be printed, since YAML parser throws an error object with needed
+      // data.
+      try {
+        resource = JSON.parse($scope.editor.content);
+      } catch (e) {
         try {
           resource = YAML.parse($scope.editor.content);
         } catch (e) {
           $scope.alerts['parsing'] = {
             type: "error",
             message: "An error occurred during parsing editors content.",
-            details: "Reason: " + $filter('getErrorDetails')(e)
+            details: "Reason: " + e.message
           };
           return;
-        }
-      } else if ($scope.editor.fileExtension === "json") {
-        try {
-          resource = JSON.parse($scope.editor.content);
-        } catch (e) {
-          $scope.alerts['parsing'] = {
-            type: "error",
-            message: "An error occurred during parsing editors content.",
-            details: "Reason: " + $filter('getErrorDetails')(e)
-          };
-          return;
-        }
-      } else {
-        try {
-          resource = JSON.parse($scope.editor.content);
-        } catch (e) {
-          try {
-            resource = YAML.parse($scope.editor.content);
-          } catch (e) {
-            $scope.alerts['parsing'] = {
-              type: "error",
-              message: "An error occurred during parsing editors content.",
-              details: "Reason: " + $filter('getErrorDetails')(e)
-            };
-            return;
-          }
         }
       }
 
       $scope.resourceKind = resource.kind;
-      $scope.resourceName = resource.metadata.name;
+      
+      if ($scope.resourceKind.endsWith("List")) {
+        $scope.resourceList = resource.items;
+      } else {
+        $scope.resourceList = [resource];
+        $scope.resourceName = resource.metadata.name;
+      }
 
-      DataService.get(APIService.kindToResource($scope.resourceKind), $scope.resourceName, {namespace: $scope.projectName}).then(
-        function() {
-          var modalInstance = $uibModal.open({
-            animation: true,
-            templateUrl: 'views/modals/update-resource.html',
-            controller: 'UpdateModalController',
-            scope: $scope
-          });
-          modalInstance.result.then(function() {
+      $scope.updateResources = [];
+      $scope.createResources = [];
 
-            DataService.delete(APIService.kindToResource($scope.resourceKind), $scope.resourceName, {namespace: $scope.projectName}).then(
-              function() {
-                createResource(resource);
-              },
-              // delete resource failure.
-              function(result) {
-                $scope.alerts['create'] = {
-                  type: "error",
-                  message: "An error occurred creating the component.",
-                  details: $filter('getErrorDetails')(result)
-                };
+      var itemsProcessed = 0;
+      angular.forEach($scope.resourceList, function(item) {
+        var itemKind = item.kind;
+        var itemName = item.metadata.name;
+
+        if (item.metadata.namespace && item.metadata.namespace !== $scope.projectName) {
+          $scope.alerts['create'] = {
+            type: "error",
+            message: "Can't create component in different projects.",
+            details: itemKind + " " + itemName + " can't be created in namespace " + item.metadata.namespace
+          };
+          return;
+        }
+
+        // Check if the resource already exists. If it does, replace it spec with the new one.
+        DataService.get(APIService.kindToResource(itemKind), itemName, {namespace: $scope.projectName}, {errorNotification: false}).then(
+          // resource does exist
+          function(resource) {
+            resource.spec = item.spec;
+            $scope.updateResources.push(resource);
+            itemsProcessed++;
+            if (itemsProcessed === $scope.resourceList.length) {
+              if (!_.isEmpty($scope.updateResources)) {
+                openModal();
+              } else {
+                createAndUpdate();
               }
-            );
-          });
-        },
-        function() {
-          createResource(resource, true);
+            }
+          },
+          // resource doesn't exist
+          function() {
+            $scope.createResources.push(item);
+            itemsProcessed++;
+            if (itemsProcessed === $scope.resourceList.length) {
+              if (!_.isEmpty($scope.updateResources)) {
+                openModal();
+              } else {
+                createAndUpdate();
+              }
+            }
+        });
       });
     };
 
+    function openModal() {
+      var modalInstance = $uibModal.open({
+        animation: true,
+        templateUrl: 'views/modals/update-resource.html',
+        controller: 'UpdateModalController',
+        scope: $scope
+      });
+      modalInstance.result.then(function() {
+        createAndUpdate();
+      });
 
-    function createResource(resource, createAction) {
-      DataService.create(APIService.kindToResource($scope.resourceKind), null, resource, {namespace: $scope.projectName}).then(
-        // success
-        function() {
-          var action = (createAction) ? "created" : "updated";
-          AlertMessageService.addAlert({
-            name: $scope.resourceName,
-            data: {
-              type: "success",
-              message: $scope.resourceKind + " " + $scope.resourceName + " was successfully " + action + "."
-            }
-          });
-          if ($scope.resourceKind === "Template") {
-            // $location.path("project/" + encodeURIComponent($scope.projectName) + "/create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName));
-            location.assign("project/" + encodeURIComponent($scope.projectName) + "/create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName));
-          } else if ($scope.resourceKind === "ImageStream") {
-            var tag = resource.metadata.name;
-            // $location.path("/project/" + encodeURIComponent($scope.projectName) + "/create/fromimage?imageName=" + $scope.resourceName + "&imageTag=" + tag + "&namespace=" + encodeURIComponent($scope.projectName));
-            location.assign("project/" + encodeURIComponent($scope.projectName) + "/create/fromimage?imageName=" + $scope.resourceName + "&imageTag=" + tag + "&namespace=" + encodeURIComponent($scope.projectName));
-          } else {
-            window.history.back();
-          }
-        },
-        // update resource failure
-        function(result) {
-          var action = (createAction) ? "creating" : "updating";
-          $scope.alerts['create'] = {
-            type: "error",
-            message: "An error occurred " + action + " the component.",
-            details: $filter('getErrorDetails')(result)
-          };
+    }
+
+    function createAndUpdate() {
+      $scope.createdAndUpdateResources = 0;
+
+      if (!_.isEmpty($scope.updateResources)) {
+        angular.forEach($scope.updateResources, function(item) {
+          DataService.update(APIService.kindToResource(item.kind), item.metadata.name, item, {namespace: $scope.projectName}).then(
+            // update resource success
+            function() {
+              console.log(item.metadata.name + " updated !!!!");
+              AlertMessageService.addAlert({
+                name: item.metadata.name,
+                data: {
+                  type: "success",
+                  message: item.kind + " " + item.metadata.name + " was successfully updated."
+                }
+              });
+              redirectIfComplete();
+            },
+            // update resource failure
+            function(result) {
+              AlertMessageService.addAlert({
+                name: item.metadata.name,
+                data: {
+                  type: "error",
+                  message: "An error occurred updating the " + item.kind + " " + item.metadata.name,
+                  details: $filter('getErrorDetails')(result)
+                }
+              });
+              redirectIfComplete();
+            });
+        });
+      }
+
+      if (!_.isEmpty($scope.createResources)) {
+        angular.forEach($scope.createResources, function(item) {
+          DataService.create(APIService.kindToResource(item.kind), null, item, {namespace: $scope.projectName}).then(
+            // create resource success
+            function() {
+              console.log(item.metadata.name + " created !!!!");
+              AlertMessageService.addAlert({
+                name: item.metadata.name,
+                data: {
+                  type: "success",
+                  message: item.kind + " " + item.metadata.name + " was successfully created."
+                }
+              });
+              redirectIfComplete();
+            },
+            // create resource failure
+            function(result) {
+              AlertMessageService.addAlert({
+                name: item.metadata.name,
+                data: {
+                  type: "error",
+                  message: "An error occurred creating the " + item.kind + " " + item.metadata.name,
+                  details: $filter('getErrorDetails')(result)
+                }
+              });
+              redirectIfComplete();
+            });
+        });
+      }  
+    }
+
+    function redirectIfComplete() {
+      $scope.createdAndUpdateResources++;
+      if ($scope.createdAndUpdateResources === $scope.resourceList.length) {
+        var subPath;
+        if ($scope.resourceKind === "Template") {
+          subPath =  "create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName);
+        } else {
+          subPath = "overview";
         }
-      );
+        $location.path("project/" + encodeURIComponent($scope.projectName) + "/" + subPath);
+        $scope.$evalAsync();
+      }
     }
 
     // Check if tag in is in the array of tags. Substring matching is optional
