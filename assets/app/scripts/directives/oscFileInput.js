@@ -21,7 +21,12 @@ angular.module('openshiftConsole')
           dropArea = scope.dropArea;
         }
         $(element).change(function(){
-          var file = $('input[type=file]', this)[0].files[0];
+          var file;
+          if (scope.file) {
+            file = scope.file;
+          } else {
+            file = $('input[type=file]', this)[0].files[0];
+          }
           var reader = new FileReader();
           reader.onloadend = function(){
             scope.$apply(function(){
@@ -36,6 +41,9 @@ angular.module('openshiftConsole')
           };
           reader.readAsText(file);
         });
+        $('.btn-file').on('click', function() {
+          delete scope.file;
+        });
         $(dropArea).on('dragover', function(e) {
           e.preventDefault();
           e.stopPropagation();
@@ -49,7 +57,8 @@ angular.module('openshiftConsole')
           e.stopPropagation();
           if (e.originalEvent.dataTransfer){
             if (e.originalEvent.dataTransfer.files.length > 0) {
-              $('input[type=file]', this)[0].files = e.originalEvent.dataTransfer.files;
+              scope.file = e.originalEvent.dataTransfer.files[0];
+              $(element).trigger('change');
             }
           }
           return false;

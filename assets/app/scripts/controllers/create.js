@@ -233,9 +233,9 @@ angular.module('openshiftConsole')
       modalInstance.result.then(function() {
         createAndUpdate();
       });
-
     }
 
+    // create 
     function createAndUpdate() {
       $scope.createdAndUpdateResources = 0;
 
@@ -300,6 +300,8 @@ angular.module('openshiftConsole')
       }  
     }
 
+    // Redirect to appropriate page based on the created/updated resource. If resource is Template redirect to
+    // frotemplate page, else to the project overview.
     function redirectIfComplete() {
       $scope.createdAndUpdateResources++;
       if ($scope.createdAndUpdateResources === $scope.resourceList.length) {
@@ -309,7 +311,7 @@ angular.module('openshiftConsole')
         } else {
           subPath = "overview";
         }
-        $location.path("project/" + encodeURIComponent($scope.projectName) + "/" + subPath);
+        $location.url("project/" + encodeURIComponent($scope.projectName) + "/" + subPath);
         $scope.$evalAsync();
       }
     }
