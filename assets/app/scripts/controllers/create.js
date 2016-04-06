@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService) {
+  .controller('CreateController', function ($uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService, TemplateService) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -168,6 +168,19 @@ angular.module('openshiftConsole')
       }
 
       $scope.resourceKind = resource.kind;
+
+      if ($scope.resourceKind === "Template") {
+        $scope.tempOptions = [
+          {id: '1', name: 'Save and Process', description: 'Create an instance of the things defined in the template, you will have an opportunity to fill out any parameters the template defines'},
+          {id: '2', name: 'Process', description: 'Create an instance of the things'},
+          {id: '3', name: 'Save', description: 'Make the template available to others who have access to this project'}
+        ];
+        $scope.tempSelected = $scope.tempOptions[0];
+        $scope.templateOptions = {
+          process: true,
+          add: false
+        };
+      }
       
       if ($scope.resourceKind.endsWith("List")) {
         $scope.resourceList = resource.items;
@@ -202,7 +215,7 @@ angular.module('openshiftConsole')
             itemsProcessed++;
             if (itemsProcessed === $scope.resourceList.length) {
               if (!_.isEmpty($scope.updateResources)) {
-                openModal();
+                openUpdateResourceModal();
               } else {
                 createAndUpdate();
               }
@@ -213,8 +226,10 @@ angular.module('openshiftConsole')
             $scope.createResources.push(item);
             itemsProcessed++;
             if (itemsProcessed === $scope.resourceList.length) {
-              if (!_.isEmpty($scope.updateResources)) {
-                openModal();
+              if ($scope.resourceList.length === 1 && $scope.resourceList[0].kind === "Template") {
+                openTemplateProcessModal();
+              } else if (!_.isEmpty($scope.updateResources)) {
+                openUpdateResourceModal();
               } else {
                 createAndUpdate();
               }
@@ -223,7 +238,24 @@ angular.module('openshiftConsole')
       });
     };
 
-    function openModal() {
+    function openTemplateProcessModal() {
+      var modalInstance = $uibModal.open({
+        animation: true,
+        templateUrl: 'views/modals/process-template.html',
+        controller: 'ProcessTemplateModalController',
+        scope: $scope
+      });
+      modalInstance.result.then(function() {
+        if ($scope.templateOptions.add) {
+          createAndUpdate();
+        } else {
+          TemplateService.setTemplate($scope.resourceList[0]);
+          redirectIfComplete();
+        }
+      });      
+    }
+
+    function openUpdateResourceModal() {
       var modalInstance = $uibModal.open({
         animation: true,
         templateUrl: 'views/modals/update-resource.html',
@@ -304,7 +336,7 @@ angular.module('openshiftConsole')
       $scope.createdAndUpdateResources++;
       if ($scope.createdAndUpdateResources === $scope.resourceList.length) {
         var subPath;
-        if ($scope.resourceKind === "Template") {
+        if ($scope.resourceKind === "Template" && $scope.templateOptions.process) {
           subPath =  "create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName);
         } else {
           subPath = "overview";
