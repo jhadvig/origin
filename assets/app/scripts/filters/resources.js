@@ -278,9 +278,9 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-      	// arbitrarily many subresources can be included
-      	// url encoding of the segments is handled by the url() function
-      	// subresource segments cannot contain '/'
+        // arbitrarily many subresources can be included
+        // url encoding of the segments is handled by the url() function
+        // subresource segments cannot contain '/'
         resource: "buildconfigs/webhooks/" + secret + "/" + type.toLowerCase(),
         name: buildConfig,
         namespace: project
@@ -950,5 +950,55 @@ angular.module('openshiftConsole')
       return _.every(containers, function(container) {
         return container.readinessProbe || container.livenessProbe;
       });
+    };
+  })
+  .filter('debugLabel', function(PodsService) {
+    return function(pod) {
+      return PodsService.getDebugLabel(pod);
+    };
+  })
+  // Determines the container entrypoint command from the container and docker image metadata.
+  .filter('entrypoint', function() {
+    // If `cmd` is an array (exec form), converts it to a string for display.
+    var toShellForm = function(cmd) {
+      if (_.isArray(cmd)) {
+        return cmd.join(' ');
+      }
+
+      return cmd;
+    };
+
+    return function(container, image) {
+      if (!container || !image) {
+        return null;
+      }
+
+      // http://kubernetes.io/docs/user-guide/containers/#how-docker-handles-command-and-arguments
+      var entrypoint,
+          cmd = toShellForm(container.command),
+          args = toShellForm(container.args);
+
+      // If `container.command` is specified, use that instead of image entrypoint. Add `container.args` if present.
+      if (cmd && args) {
+        return cmd + " " + args;
+      }
+
+      if (cmd) {
+        return cmd;
+      }
+
+      entrypoint = toShellForm(_.get(image, 'dockerImageMetadata.Config.Entrypoint') || ["/bin/sh", "-c"]);
+      // If `container.args` is supplied without `container.command`, use container args with the image entrypoint.
+      if (args) {
+        return entrypoint + " " + args;
+      }
+
+      // Otherwise, use container entrypoint with container command.
+      cmd = toShellForm(_.get(image, 'dockerImageMetadata.Config.Cmd'));
+      if (cmd) {
+        return entrypoint + " " + cmd;
+      }
+
+      return null;
     };
   });
