@@ -1,18 +1,15 @@
 <div class="modal-resource-update">
   <div class="modal-body">
     <div ng-if="resourceList.length === 1">
-      <h1>{{resourceKind | humanize}} '<strong>{{resourceName}}</strong>' already exists</h1>
-      <p>Do you want to replace the current '<strong>{{resourceName}}</strong>' {{resourceKind | humanize}} with the submitted one?</p>
+      <h1>{{resourceKind | humanizeKind}} '<strong>{{resourceName}}</strong>' already exists</h1>
+      <p>Do you want to replace the current '<strong>{{resourceName}}</strong>' {{resourceKind | humanizeKind}} with the submitted one?</p>
     </div>
     
     <div ng-if="resourceList.length > 1">
-      <h1>Some of {{resourceKind | humanize}} items already exists</h1>
-      <p>Following components already exist:</p>
+      <h1>Following items from the {{resourceKind | humanizeKind}} already exist:</h1>
       <dl class="dl-horizontal">
-        <div ng-repeat="resource in updateResources">
-          <dt>{{resource.kind}}</dt>
-          <dd>{{resource.metadata.name}}</dd>
-        </div>
+        <dt ng-repeat-start="resource in updateResources">{{resource.kind}}</dt>
+        <dd ng-repeat-end>{{resource.metadata.name}}</dd>
       </dl>
       <p>Do you want to replace the existing resources with the submitted ones?</p>
     </div>

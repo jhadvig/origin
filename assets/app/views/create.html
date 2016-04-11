@@ -11,6 +11,9 @@
           <div class="container surface-shaded">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
+
+
+
             <div class="row">
               <div class="col-md-12">
                 <h1>Add Components to your Project</h1>
@@ -170,6 +173,21 @@
 
                   <uib-tab active="selectedTab.fromFile">
                     <uib-tab-heading>From File</uib-tab-heading>
+
+                    <div ng-show="error" class="alert alert-danger">
+                      <button ng-click="error = null" type="button" class="close" aria-hidden="true">
+                        <span class="pficon pficon-close"></span>
+                      </button>
+                      <span class="pficon pficon-error-circle-o"></span>
+                      <strong>Failed to process the resource.</strong>
+                      <div>
+                        <truncate-long-text ng-if="error.message" content="error.message" limit="512" use-word-boundary="true"></truncate-long-text>
+                        <span ng-if="error.parsedLine">Line: {{error.parsedLine}}</span>
+                        <code ng-if="error.snippet">{{error.snippet}}</code>
+                      </div>
+                    </div>
+
+
                     <div class="row">
                       <div class="col-sm-12 from-file">
                         <form name="form">
@@ -188,18 +206,14 @@
                             <button
                               type="submit"
                               ng-click="create()"
-                              ng-disabled="editor.empty"
+                              ng-disabled="!editor.content"
                               class="btn btn-primary btn-lg">
-                              Add
+                              Create
                             </button>
                           </div>
                         </form>
                       </div>
                     </div>
-                  </uib-tab>
-
-                  <uib-tab active="selectedTab.fromDockerImage">
-                    <uib-tab-heading>From Docker Image</uib-tab-heading>
                   </uib-tab>
 
                 </uib-tabset>

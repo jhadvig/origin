@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService, TemplateService) {
+  .controller('CreateController', function ($q, $uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService, TemplateService) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -89,8 +89,6 @@ angular.module('openshiftConsole')
 
     $scope.editor = {
       content: "",
-      empty: true,
-      session: {}
     };
 
     $scope.breadcrumbs = [
@@ -103,42 +101,42 @@ angular.module('openshiftConsole')
       }
     ];
 
+    var aceEditorSession;
+
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
     };
 
     $scope.aceLoaded = function(editor) {
-      $scope.editor.session = editor.getSession();
-      $scope.editor.session.setOption('tabSize', 2);
-      $scope.editor.session.setOption('useSoftTabs', true);
+      aceEditorSession = editor.getSession();
+      aceEditorSession.setOption('tabSize', 2);
+      aceEditorSession.setOption('useSoftTabs', true);
       editor.setDragDelay = 0;
       editor.$blockScrolling = Infinity;
 
       $('.from-file .editor').animate({
         height: Math.floor(window.innerHeight * 0.50) + 'px'
-      }, 30, function() {
-        editor.resize();
-      });
+      }, 30);
     };
 
-    // Check if the editor isn't empty to disable the 'Add' button. Also check in what format the input is in (JSON/YAML) and change
-    // the editor accordingly.
-    $scope.aceChanged = function() {
-      $scope.editor.empty = false;
-      if (!$scope.editor.content) {
-        $scope.editor.empty = true;
-      }
+    var aceDebounce = _.debounce(function(){
       try {
         JSON.parse($scope.editor.content);
-        $scope.editor.session.setMode("ace/mode/json");
+        aceEditorSession.setMode("ace/mode/json");
       } catch (e) {
         try {
           YAML.parse($scope.editor.content);
-          $scope.editor.session.setMode("ace/mode/yaml");
+          aceEditorSession.setMode("ace/mode/yaml");
         } catch (e) {
           return;
         }
       }
+    }, 500);
+
+    // Check if the editor isn't empty to disable the 'Add' button. Also check in what format the input is in (JSON/YAML) and change
+    // the editor accordingly.
+    $scope.aceChanged = function() {
+      aceDebounce();
     };
 
     $scope.create = function() {
@@ -158,32 +156,28 @@ angular.module('openshiftConsole')
         try {
           resource = YAML.parse($scope.editor.content);
         } catch (e) {
-          $scope.alerts['parsing'] = {
-            type: "error",
-            message: "An error occurred during parsing editors content.",
-            details: "Reason: " + e.message
-          };
+          $scope.error = e;
           return;
         }
+      }
+
+      if (!resource.metadata || !resource.kind) {
+        missingFieldsError(resource);
+        return;
       }
 
       $scope.resourceKind = resource.kind;
 
       if ($scope.resourceKind === "Template") {
-        $scope.tempOptions = [
-          {id: '1', name: 'Save and Process', description: 'Create an instance of the things defined in the template, you will have an opportunity to fill out any parameters the template defines'},
-          {id: '2', name: 'Process', description: 'Create an instance of the things'},
-          {id: '3', name: 'Save', description: 'Make the template available to others who have access to this project'}
-        ];
-        $scope.tempSelected = $scope.tempOptions[0];
         $scope.templateOptions = {
           process: true,
-          add: false
+          add: true
         };
       }
       
       if ($scope.resourceKind.endsWith("List")) {
         $scope.resourceList = resource.items;
+        $scope.resourceName = '';
       } else {
         $scope.resourceList = [resource];
         $scope.resourceName = resource.metadata.name;
@@ -192,51 +186,49 @@ angular.module('openshiftConsole')
       $scope.updateResources = [];
       $scope.createResources = [];
 
-      var itemsProcessed = 0;
-      angular.forEach($scope.resourceList, function(item) {
-        var itemKind = item.kind;
-        var itemName = item.metadata.name;
-
-        if (item.metadata.namespace && item.metadata.namespace !== $scope.projectName) {
-          $scope.alerts['create'] = {
-            type: "error",
-            message: "Can't create component in different projects.",
-            details: itemKind + " " + itemName + " can't be created in namespace " + item.metadata.namespace
+      var resourceCheckPromises = [];
+      var errorOccured = false;
+      _.forEach($scope.resourceList, function(item) {
+        if (!item.metadata || !item.kind) {
+          missingFieldsError(item);
+          errorOccured = true;
+          return false;
+        } else if (item.metadata.namespace && item.metadata.namespace !== $scope.projectName) {
+          $scope.error = {
+            message: item.kind + " " + item.metadata.name + " can't be created in project " + item.metadata.namespace + ". Can't create resource in different projects."
           };
-          return;
+          errorOccured = true;
+          return false;
         }
-
-        // Check if the resource already exists. If it does, replace it spec with the new one.
-        DataService.get(APIService.kindToResource(itemKind), itemName, {namespace: $scope.projectName}, {errorNotification: false}).then(
-          // resource does exist
-          function(resource) {
-            resource.spec = item.spec;
-            $scope.updateResources.push(resource);
-            itemsProcessed++;
-            if (itemsProcessed === $scope.resourceList.length) {
-              if (!_.isEmpty($scope.updateResources)) {
-                openUpdateResourceModal();
-              } else {
-                createAndUpdate();
-              }
-            }
-          },
-          // resource doesn't exist
-          function() {
-            $scope.createResources.push(item);
-            itemsProcessed++;
-            if (itemsProcessed === $scope.resourceList.length) {
-              if ($scope.resourceList.length === 1 && $scope.resourceList[0].kind === "Template") {
-                openTemplateProcessModal();
-              } else if (!_.isEmpty($scope.updateResources)) {
-                openUpdateResourceModal();
-              } else {
-                createAndUpdate();
-              }
-            }
-        });
+        resourceCheckPromises.push($scope.checkResource(item));
       });
+
+      if (!errorOccured) {
+        $q.all(resourceCheckPromises).then(function() {
+          // If resource if Template and it doesn't exist in the project
+          if ($scope.createResources.length === 1 && $scope.resourceList[0].kind === "Template") {
+            openTemplateProcessModal();
+          // Else if any resources already exist
+          } else if (!_.isEmpty($scope.updateResources)) {
+            confirmReplace();
+          } else {
+            createAndUpdate();
+          }
+        });
+      }
     };
+
+    function missingFieldsError(item) {
+      var missingField = "";
+      if (!item.kind) {
+        missingField = "'kind'";
+      } else if (!item.metadata) {
+        missingField = "'metadata'";
+      }
+      $scope.error = {
+        message: "Resource is missing " + missingField + " field."
+      };
+    }
 
     function openTemplateProcessModal() {
       var modalInstance = $uibModal.open({
@@ -250,16 +242,16 @@ angular.module('openshiftConsole')
           createAndUpdate();
         } else {
           TemplateService.setTemplate($scope.resourceList[0]);
-          redirectIfComplete();
+          redirect();
         }
       });      
     }
 
-    function openUpdateResourceModal() {
+    function confirmReplace() {
       var modalInstance = $uibModal.open({
         animation: true,
-        templateUrl: 'views/modals/update-resource.html',
-        controller: 'UpdateModalController',
+        templateUrl: 'views/modals/confirm-replace.html',
+        controller: 'ConfirmReplaceModalController',
         scope: $scope
       });
       modalInstance.result.then(function() {
@@ -269,81 +261,30 @@ angular.module('openshiftConsole')
 
     // create 
     function createAndUpdate() {
-      $scope.createdAndUpdateResources = 0;
+      var createUpdatePromises = [];
 
-      if (!_.isEmpty($scope.updateResources)) {
-        angular.forEach($scope.updateResources, function(item) {
-          DataService.update(APIService.kindToResource(item.kind), item.metadata.name, item, {namespace: $scope.projectName}).then(
-            // update resource success
-            function() {
-              AlertMessageService.addAlert({
-                name: item.metadata.name,
-                data: {
-                  type: "success",
-                  message: item.kind + " " + item.metadata.name + " was successfully updated."
-                }
-              });
-              redirectIfComplete();
-            },
-            // update resource failure
-            function(result) {
-              AlertMessageService.addAlert({
-                name: item.metadata.name,
-                data: {
-                  type: "error",
-                  message: "An error occurred updating the " + item.kind + " " + item.metadata.name,
-                  details: $filter('getErrorDetails')(result)
-                }
-              });
-              redirectIfComplete();
-            });
-        });
-      }
+      angular.forEach($scope.updateResources, function(item) {
+        createUpdatePromises.push($scope.updateResource(item));
+      });
 
-      if (!_.isEmpty($scope.createResources)) {
-        angular.forEach($scope.createResources, function(item) {
-          DataService.create(APIService.kindToResource(item.kind), null, item, {namespace: $scope.projectName}).then(
-            // create resource success
-            function() {
-              AlertMessageService.addAlert({
-                name: item.metadata.name,
-                data: {
-                  type: "success",
-                  message: item.kind + " " + item.metadata.name + " was successfully created."
-                }
-              });
-              redirectIfComplete();
-            },
-            // create resource failure
-            function(result) {
-              AlertMessageService.addAlert({
-                name: item.metadata.name,
-                data: {
-                  type: "error",
-                  message: "An error occurred creating the " + item.kind + " " + item.metadata.name,
-                  details: $filter('getErrorDetails')(result)
-                }
-              });
-              redirectIfComplete();
-            });
-        });
-      }  
+      angular.forEach($scope.createResources, function(item) {
+        createUpdatePromises.push($scope.createResources(item));
+      });
+
+      $q.all(createUpdatePromises).then(function() {
+        redirect();
+      });
     }
 
-    // Redirect to appropriate page based on the created/updated resource. If resource is Template redirect to
-    // frotemplate page, else to the project overview.
-    function redirectIfComplete() {
-      $scope.createdAndUpdateResources++;
-      if ($scope.createdAndUpdateResources === $scope.resourceList.length) {
-        var subPath;
-        if ($scope.resourceKind === "Template" && $scope.templateOptions.process) {
-          subPath =  "create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName);
-        } else {
-          subPath = "overview";
-        }
-        $location.url("project/" + encodeURIComponent($scope.projectName) + "/" + subPath);
-        $scope.$evalAsync();
+    function redirect() {
+      var subPath;
+      if ($scope.resourceKind === "Template" && $scope.templateOptions.process) {
+        subPath =  "create/fromtemplate?name=" + $scope.resourceName + "&namespace=" + encodeURIComponent($scope.projectName);
+      } else {
+        subPath = "overview";
       }
+      $location.url("project/" + encodeURIComponent($scope.projectName) + "/" + subPath);
+      // $scope.$evalAsync();
     }
 
     // Check if tag in is in the array of tags. Substring matching is optional
@@ -584,5 +525,75 @@ angular.module('openshiftConsole')
           categorizeImages(openshiftImageStreams);
           updateState();
         });
+
+        $scope.checkResource = function(item) {
+          // Check if the resource already exists. If it does, replace it spec with the new one.
+          return DataService.get(APIService.kindToResource(item.kind), item.metadata.name, context, {errorNotification: false}).then(
+            // resource does exist
+            function(resource) {
+              resource.spec = item.spec;
+              $scope.updateResources.push(resource);
+            },
+            // resource doesn't exist
+            function() {
+              $scope.createResources.push(item);
+          });
+        };
+
+        $scope.createResources = function(item) {
+          var itemKind = item.kind;
+          var itemName = item.metadata.name;
+          DataService.create(APIService.kindToResource(itemKind), null, item, context).then(
+            // create resource success
+            function() {
+              AlertMessageService.addAlert({
+                name: itemName,
+                data: {
+                  type: "success",
+                  message: itemKind + " " + itemName + " was successfully created."
+                }
+              });
+            },
+            // create resource failure
+            function(result) {
+              AlertMessageService.addAlert({
+                name: itemName,
+                data: {
+                  type: "error",
+                  message: "An error occurred creating the " + itemKind + " " + itemName,
+                  details: $filter('getErrorDetails')(result)
+                }
+              });
+            });
+        };
+
+        $scope.updateResource= function(item) {
+          var itemKind = item.kind;
+          var itemName = item.metadata.name;
+          DataService.update(APIService.kindToResource(itemKind), itemName, item, context).then(
+            // update resource success
+            function() {
+              AlertMessageService.addAlert({
+                name: itemName,
+                data: {
+                  type: "success",
+                  message: itemKind + " " + itemName + " was successfully updated."
+                }
+              });
+            },
+            // update resource failure
+            function(result) {
+              AlertMessageService.addAlert({
+                name: itemName,
+                data: {
+                  type: "error",
+                  message: "An error occurred updating the " + itemKind + " " + itemName,
+                  details: $filter('getErrorDetails')(result)
+                }
+              });
+              
+            });
+        };
+
       }));
   });

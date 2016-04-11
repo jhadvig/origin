@@ -1,51 +1,18 @@
 <div class="modal-resource-process">
   <div class="modal-body">
     <h1>You are adding a Template</h1>
-    <p>Please select an action you want to do with your defined Template:</p>
+    <p>Please select type of actions you want to do with your defined Template:</p>
+
     <div>
       <input type="checkbox" ng-model="templateOptions.process"/>
       <strong>Process the template</strong>
-      <span class="help action-inline">
-        <a href>
-          <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Make the template available to others who have access to this project">
-          </i>
-        </a>
-      </span>
+      <span id="helpBlock" class="help-block">This will create an instance of the things defined in the template, you will have an opportunity to fill out any parameters the template defines.</span>
     </div>
     <div>
     <input type="checkbox" ng-model="templateOptions.add"/>
     <strong>Add template</strong>
-    <span class="help action-inline">
-      <a href>
-        <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Make the template available to others who have access to this project">
-        </i>
-      </a>
-    </span>
+    <span id="helpBlock" class="help-block">This will save the tamplate and it available to others who have access to this project.</span>
     </div>
-
-<!--     <div>
-      <select name="mySelect" id="mySelect"
-        ng-options="option.name for option in tempOptions track by option.id"
-        ng-model="tempSelected">
-      </select>
-      <span id="helpBlock" class="help-block">{{tempSelected.description}}</span>
-    </div> -->
-
-<!--     <div class="next-options">
-    <label class="next-option" data-ng-repeat="option in tempOptions">
-      <input type="radio" name="response" data-ng-model="option.id" data-ng-value="true" />
-      {{option.name}}
-      <span class="help action-inline">
-        <a href>
-          <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="Make the template available to others who have access to this project">
-          </i>
-        </a>
-      </span>
-    </label>
-
-    </div> -->
-
-
   </div>
   <div class="modal-footer">
       <button class="btn btn-lg btn-primary" type="button" ng-click="Add();">Continue</button>

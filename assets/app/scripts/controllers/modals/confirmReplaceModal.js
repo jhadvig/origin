@@ -4,11 +4,11 @@
  * @ngdoc function
  * @name openshiftConsole.controller:ServicesController
  * @description
- * # UpdateModalController
+ * # ConfirmReplaceModalController
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('UpdateModalController', function ($scope, $uibModalInstance, AlertMessageService) {
+  .controller('ConfirmReplaceModalController', function ($scope, $uibModalInstance, AlertMessageService) {
     $scope.update = function() {
       $uibModalInstance.close('update');
     };

@@ -101,7 +101,7 @@ angular.module('openshiftConsole')
     $scope.topologyItems = { };
     $scope.topologyRelations = [ ];
 
-    $scope.alerts = {};
+    $scope.alerts = $scope.alerts || {};
     AlertMessageService.getAlerts().forEach(function(alert) {
       $scope.alerts[alert.name] = alert.data;
     });
