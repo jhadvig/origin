@@ -9,7 +9,7 @@
  */
 angular.module('openshiftConsole')
   .controller('ProcessTemplateModalController', function ($scope, $uibModalInstance) {
-    $scope.create = function() {
+    $scope.continue = function() {
       $uibModalInstance.close('create');
     };
 
