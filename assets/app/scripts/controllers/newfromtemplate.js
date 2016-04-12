@@ -141,7 +141,7 @@ angular.module('openshiftConsole')
               TaskList.clear();
               TaskList.add(titles, helpLinks, function() {
                 var d = $q.defer();
-                DataService.createList(config.objects, context).then(
+                DataService.listAction(config.objects, context).then(
                   function(result) {
                     var alerts = [];
                     var hasErrors = false;
@@ -198,7 +198,7 @@ angular.module('openshiftConsole')
           $scope.template.labels = $scope.template.labels || {};
         }
 
-        if ($scope.template === {}) {
+        if (_.isEmpty($scope.template)) {
           DataService.get("templates", name, {namespace: (namespace || $scope.projectName)}).then(
             function(template) {
               $scope.template = template;

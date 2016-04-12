@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($q, $uibModal, $routeParams, $scope, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService, TemplateService) {
+  .controller('CreateController', function ($q, $uibModal, $routeParams, $scope, TaskList, DataService, ProjectsService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, AlertMessageService, Logger, APIService, TemplateService) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -81,11 +81,13 @@ angular.module('openshiftConsole')
     };
 
     $scope.alerts = $scope.alerts || {};
+    $scope.isList = false;
 
     AlertMessageService.getAlerts().forEach(function(alert) {
       $scope.alerts[alert.name] = alert.data;
     });
     AlertMessageService.clearAlerts();
+    TaskList.clear();
 
     $scope.editor = {
       content: "",
@@ -102,6 +104,7 @@ angular.module('openshiftConsole')
     ];
 
     var aceEditorSession;
+    var humanize = $filter('humanize');
 
     $scope.filterTag = function(tag) {
       $scope.filter.tag = tag;
@@ -174,8 +177,12 @@ angular.module('openshiftConsole')
           add: true
         };
       }
-      
+
       if ($scope.resourceKind.endsWith("List")) {
+        $scope.isList = true;
+      }
+      
+      if ($scope.isList) {
         $scope.resourceList = resource.items;
         $scope.resourceName = '';
       } else {
@@ -262,15 +269,12 @@ angular.module('openshiftConsole')
     // create 
     function createAndUpdate() {
       var createUpdatePromises = [];
-
-      angular.forEach($scope.updateResources, function(item) {
-        createUpdatePromises.push($scope.updateResource(item));
-      });
-
-      angular.forEach($scope.createResources, function(item) {
-        createUpdatePromises.push($scope.createResources(item));
-      });
-
+      if ($scope.updateResources.length > 0) {
+        createUpdatePromises.push($scope.updateResourceList());
+      }
+      if ($scope.createResources.length > 0) {
+        createUpdatePromises.push($scope.createResourceList());
+      }
       $q.all(createUpdatePromises).then(function() {
         redirect();
       });
@@ -540,60 +544,103 @@ angular.module('openshiftConsole')
           });
         };
 
-        $scope.createResources = function(item) {
-          var itemKind = item.kind;
-          var itemName = item.metadata.name;
-          DataService.create(APIService.kindToResource(itemKind), null, item, context).then(
-            // create resource success
-            function() {
-              AlertMessageService.addAlert({
-                name: itemName,
-                data: {
-                  type: "success",
-                  message: itemKind + " " + itemName + " was successfully created."
+        $scope.createResourceList = function() {
+          var titles = {
+            started: "Creating in project " + $scope.projectName,
+            success: "Created in project " + $scope.projectName,
+            failure: "Failed to create in project " + $scope.projectName
+          };
+          var helpLinks = {};
+          TaskList.add(titles, helpLinks, function() {
+            var d = $q.defer();
+
+            DataService.listAction($scope.createResources, context).then(
+              function(result) {
+                var alerts = [];
+                var hasErrors = false;
+                if (result.failure.length > 0) {
+                  hasErrors = true;
+                  result.failure.forEach(
+                    function(failure) {
+                      alerts.push({
+                        type: "error",
+                        message: "Cannot create " + humanize(failure.object.kind).toLowerCase() + " \"" + failure.object.metadata.name + "\". ",
+                        details: failure.data.message
+                      });
+                    }
+                  );
+                  result.success.forEach(
+                    function(success) {
+                      alerts.push({
+                        type: "success",
+                        message: "Created " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                      });
+                    }
+                  );
+                } else {
+                  var alertMsg;
+                  if ($scope.isList) {
+                    alertMsg = "All items in list were created successfully.";
+                  } else {
+                    alertMsg = $scope.resourceKind + " " + $scope.resourceName + " was successfully created.";
+                  }
+                  alerts.push({ type: "success", message: alertMsg});
                 }
-              });
-            },
-            // create resource failure
-            function(result) {
-              AlertMessageService.addAlert({
-                name: itemName,
-                data: {
-                  type: "error",
-                  message: "An error occurred creating the " + itemKind + " " + itemName,
-                  details: $filter('getErrorDetails')(result)
-                }
-              });
-            });
+                d.resolve({alerts: alerts, hasErrors: hasErrors});
+              }
+            );
+            return d.promise;
+          });
         };
 
-        $scope.updateResource= function(item) {
-          var itemKind = item.kind;
-          var itemName = item.metadata.name;
-          DataService.update(APIService.kindToResource(itemKind), itemName, item, context).then(
-            // update resource success
-            function() {
-              AlertMessageService.addAlert({
-                name: itemName,
-                data: {
-                  type: "success",
-                  message: itemKind + " " + itemName + " was successfully updated."
-                }
-              });
-            },
-            // update resource failure
-            function(result) {
-              AlertMessageService.addAlert({
-                name: itemName,
-                data: {
-                  type: "error",
-                  message: "An error occurred updating the " + itemKind + " " + itemName,
-                  details: $filter('getErrorDetails')(result)
-                }
-              });
-              
-            });
-        };
 
+        $scope.updateResourceList = function() {
+          var titles = {
+            started: "Updating in project " + $scope.projectName,
+            success: "Updated in project " + $scope.projectName,
+            failure: "Failed to update in project " + $scope.projectName
+          };
+          var helpLinks = {};
+          TaskList.add(titles, helpLinks, function() {
+            var d = $q.defer();
+
+            DataService.listAction($scope.updateResources, context, {action: "update"}).then(
+              function(result) {
+                var alerts = [];
+                var hasErrors = false;
+                if (result.failure.length > 0) {
+                  hasErrors = true;
+                  result.failure.forEach(
+                    function(failure) {
+                      alerts.push({
+                        type: "error",
+                        message: "Cannot update " + humanize(failure.object.kind).toLowerCase() + " \"" + failure.object.metadata.name + "\". ",
+                        details: failure.data.message
+                      });
+                    }
+                  );
+                  result.success.forEach(
+                    function(success) {
+                      alerts.push({
+                        type: "success",
+                        message: "Updated " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                      });
+                    }
+                  );
+                } else {
+                  var alertMsg;
+                  if ($scope.isList) {
+                    alertMsg = "All items in list were updated successfully.";
+                  } else {
+                    alertMsg = $scope.resourceKind + " " + $scope.resourceName + " was successfully updated.";
+                  }
+                  alerts.push({ type: "success", message: alertMsg});
+                }
+                d.resolve({alerts: alerts, hasErrors: hasErrors});
+              }
+            );
+            return d.promise;
+          });
+        };
       }));
   });

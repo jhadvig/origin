@@ -17,6 +17,7 @@ angular.module('openshiftConsole')
         scope.supportsFileUpload = (window.File && window.FileReader && window.FileList && window.Blob);
         scope.uploadError = false;
         var dropArea = scope.dropArea || element;
+        // var body = $('body');
         $(element).change(function(){
           var file;
           if (scope.file) {
@@ -38,9 +39,16 @@ angular.module('openshiftConsole')
           };
           reader.readAsText(file);
         });
+        $(dropArea).on('dragleave',function(e) {
+          console.log("leave");
+          e.preventDefault();
+          e.stopPropagation();
+          $(this).removeClass('show-drag-and-drop-area');
+        });
         $(dropArea).on('dragover', function(e) {
           e.preventDefault();
           e.stopPropagation();
+          $(this).addClass('show-drag-and-drop-area');
         });
         $(dropArea).on('dragenter', function(e) {
           e.preventDefault();
@@ -54,6 +62,7 @@ angular.module('openshiftConsole')
             scope.file = e.originalEvent.dataTransfer.files[0];
             $(element).trigger('change');
           }
+          $(this).removeClass('show-drag-and-drop-area');
           return false;
         });
       }
