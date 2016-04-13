@@ -16,8 +16,17 @@ angular.module('openshiftConsole')
         scope.helpID = _.uniqueId('help-');
         scope.supportsFileUpload = (window.File && window.FileReader && window.FileList && window.Blob);
         scope.uploadError = false;
-        var dropArea = scope.dropArea || element;
-        // var body = $('body');
+        var dropArea = scope.dropArea || element,
+        isDisabled = scope.disabled || false,
+        highlightDropArea = false,
+        showDropArea = false,
+        timeout = -1,
+        highlightTimeout = -1;
+
+        scope.$watch('disabled', function() {
+          isDisabled = scope.disabled;
+        }, true);
+
         $(element).change(function(){
           var file;
           if (scope.file) {
@@ -39,30 +48,64 @@ angular.module('openshiftConsole')
           };
           reader.readAsText(file);
         });
-        $(dropArea).on('dragleave',function(e) {
-          console.log("leave");
+        $(document).on('dragenter', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          $(this).removeClass('show-drag-and-drop-area');
+          if (isDisabled) {
+            return false;
+          }
+          $(dropArea).addClass('show-drag-and-drop-area');
+          showDropArea = true;
         });
-        $(dropArea).on('dragover', function(e) {
+        $(document).on('dragover', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          $(this).addClass('show-drag-and-drop-area');
+          if (isDisabled) {
+            console.log("====> " + isDisabled);
+            return false;
+          }
+          showDropArea = true;
         });
-        $(dropArea).on('dragenter', function(e) {
+        $(document).on('dragleave', function(e) {
           e.preventDefault();
           e.stopPropagation();
+          if (isDisabled) {
+            return false;
+          }
+          showDropArea = false;
+          clearTimeout( timeout );
+          timeout = setTimeout( function(){
+              if( !showDropArea ){ $(dropArea).removeClass('show-drag-and-drop-area'); }
+          }, 200 );
+        });
+        $(dropArea).on('dragenter', function() {
+          $(dropArea).addClass('highlight-drag-and-drop-area');
+          highlightDropArea = true;
+        });
+        $(dropArea).on('dragover', function() {
+          highlightDropArea = true;
+        });
+        $(dropArea).on('dragleave', function() {
+          highlightDropArea = false;
+          clearTimeout( timeout );
+          highlightTimeout = setTimeout( function(){
+              if( !highlightDropArea ){ $(dropArea).removeClass('highlight-drag-and-drop-area'); }
+          }, 100 );
         });
         $(dropArea).on('drop', function(e) {
           e.preventDefault();
           e.stopPropagation();
+          if (isDisabled) {
+            return false;
+          }
           var files = _.get(e, 'originalEvent.dataTransfer.files', []);
           if (files.length > 0 ) {
             scope.file = e.originalEvent.dataTransfer.files[0];
             $(element).trigger('change');
           }
-          $(this).removeClass('show-drag-and-drop-area');
+          angular.forEach($('.show-drag-and-drop-area'), function(el) {
+            el.classList.remove('show-drag-and-drop-area');
+          });
           return false;
         });
       }

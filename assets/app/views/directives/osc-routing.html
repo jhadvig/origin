@@ -179,24 +179,25 @@
           </span>
         </span>
       </div>
-      <fieldset ng-disabled="!route.tls.termination || route.tls.termination === 'passthrough'">
+      <fieldset ng-disabled="checkTslTermination()">
         <div>
-          <div class="form-group">
+          <div class="form-group certificate-file">
             <label>Certificate</label>
-            <osc-file-input model="route.tls.certificate" help-text="The PEM format certificate."></osc-file-input>
+            <osc-file-input model="route.tls.certificate" drop-area=".certificate-file" help-text="The PEM format certificate." ng-disabled="checkTslTermination()"></osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group private-key-file">
             <label>Private Key</label>
-            <osc-file-input model="route.tls.key" help-text="The PEM format key."></osc-file-input>
+            <osc-file-input model="route.tls.key" drop-area=".private-key-file" help-text="The PEM format key." ng-disabled="checkTslTermination()"></osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group ca-certificate-file">
             <label>CA Certificate</label>
-            <osc-file-input model="route.tls.caCertificate" help-text="The PEM format CA certificate."></osc-file-input>
+            <osc-file-input model="route.tls.caCertificate" drop-area=".ca-certificate-file" help-text="The PEM format CA certificate." ng-disabled="checkTslTermination()"></osc-file-input>
           </div>
-          <div class="form-group">
+          <div class="form-group dest-ca-certificate-file">
             <label>Destination CA Certificate</label>
             <osc-file-input
                 model="route.tls.destinationCACertificate"
+                drop-area=".dest-ca-certificate-file"
                 help-text="The PEM format CA certificate to validate the endpoint certificate for re-encrypt termination."
                 ng-disabled="route.tls.termination !== 'reencrypt'">
             </osc-file-input>

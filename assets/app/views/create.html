@@ -18,7 +18,7 @@
               <div class="col-md-12">
                 <h1>Add Components to your Project</h1>
 
-                <uib-tabset justified="true">
+                <uib-tabset>
                   <uib-tab active="selectedTab.fromCatalog">
                     <uib-tab-heading>From Catalog</uib-tab-heading>
 
@@ -173,47 +173,7 @@
 
                   <uib-tab active="selectedTab.fromFile">
                     <uib-tab-heading>From File</uib-tab-heading>
-
-                    <div ng-show="error" class="alert alert-danger">
-                      <button ng-click="error = null" type="button" class="close" aria-hidden="true">
-                        <span class="pficon pficon-close"></span>
-                      </button>
-                      <span class="pficon pficon-error-circle-o"></span>
-                      <strong>Failed to process the resource.</strong>
-                      <div>
-                        <truncate-long-text ng-if="error.message" content="error.message" limit="512" use-word-boundary="true"></truncate-long-text>
-                        <span ng-if="error.parsedLine">Line: {{error.parsedLine}}</span>
-                        <code ng-if="error.snippet">{{error.snippet}}</code>
-                      </div>
-                    </div>
-
-
-                    <div class="row">
-                      <div class="col-sm-12 from-file default-padding">
-                        <form name="form">
-                          <osc-file-input model="editor.content" drop-area=".from-file" help-text="Upload file by dragging & dropping,  selecting it, or pasting from the clipboard."></osc-file-input>
-                          <div ui-ace="{
-                            mode: 'yaml',
-                            theme: 'eclipse',
-                            onLoad: aceLoaded,
-                            onChange: aceChanged,
-                            rendererOptions: {
-                              fadeFoldWidgets: true,
-                              showPrintMargin: false
-                            }
-                          }" ng-model="editor.content" class="editor ace_editor-bordered yaml-mode" id="add_component_editor" required></div>
-                          <div class="buttons gutter-top-bottom">
-                            <button
-                              type="submit"
-                              ng-click="create()"
-                              ng-disabled="!editor.content"
-                              class="btn btn-primary btn-lg">
-                              Create
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
+                    <from-file></from-file>
                   </uib-tab>
 
                 </uib-tabset>
