@@ -16,6 +16,7 @@ angular.module('openshiftConsole')
         scope.helpID = _.uniqueId('help-');
         scope.supportsFileUpload = (window.File && window.FileReader && window.FileList && window.Blob);
         scope.uploadError = false;
+
         var dropArea = scope.dropArea || element,
         isDisabled = scope.disabled || false,
         highlightDropArea = false,
@@ -61,7 +62,6 @@ angular.module('openshiftConsole')
           e.preventDefault();
           e.stopPropagation();
           if (isDisabled) {
-            console.log("====> " + isDisabled);
             return false;
           }
           showDropArea = true;
@@ -77,6 +77,11 @@ angular.module('openshiftConsole')
           timeout = setTimeout( function(){
               if( !showDropArea ){ $(dropArea).removeClass('show-drag-and-drop-area'); }
           }, 200 );
+        });
+        $(document).on('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
         });
         $(dropArea).on('dragenter', function() {
           $(dropArea).addClass('highlight-drag-and-drop-area');
@@ -105,6 +110,7 @@ angular.module('openshiftConsole')
           }
           angular.forEach($('.show-drag-and-drop-area'), function(el) {
             el.classList.remove('show-drag-and-drop-area');
+            el.classList.remove('highlight-drag-and-drop-area');
           });
           return false;
         });

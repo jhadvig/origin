@@ -36,7 +36,7 @@ angular.module("openshiftConsole")
       templateUrl: 'views/directives/osc-routing.html',
       controller: function($scope) {
         $scope.checkTslTermination = function() {
-          if (!$scope.route.tls.termination || $scope.route.tls.termination === 'passthrough') {
+          if (!$scope.route.tls || !$scope.route.tls.termination || $scope.route.tls.termination === 'passthrough') {
             return true;
           }
           return false;
