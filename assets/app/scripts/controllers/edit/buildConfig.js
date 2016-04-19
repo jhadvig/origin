@@ -83,7 +83,8 @@ angular.module('openshiftConsole')
       "dockerfile": false,
       "git": false,
       "images": false,
-      "contextDir": false
+      "contextDir": false,
+      "none": true
     };
     // $scope.triggers.present.imageChange points to builder imageChange trigger.
     $scope.triggers = {
@@ -767,6 +768,10 @@ angular.module('openshiftConsole')
     };
 
     $scope.getSourceMap = function(sourceMap, sources) {
+      if (sources.type === "None") {
+        return sourceMap
+      }
+      sourceMap.none = false;
       angular.forEach(sources, function(value, key) {
         sourceMap[key] = true;
       });

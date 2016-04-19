@@ -141,6 +141,18 @@
                             </div>
                           </div>
 
+                          <div ng-if="sources.none">
+                            <div class="form-group">
+                              <label for="buildFrom">Not set</label>
+                              <span class="help action-inline">
+                                <a href>
+                                  <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="No input is predefined for this build configuration.">
+                                  </i>
+                                </a>
+                              </span>
+                            </div>
+                          </div>
+
                           <div class="form-groups" ng-show="sources.images">
 
                             <div class="single-image-source" ng-if="sourceImages.length === 1">

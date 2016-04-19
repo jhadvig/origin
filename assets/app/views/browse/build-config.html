@@ -240,6 +240,18 @@
                                   <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
                                   <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
                                 </div>
+                                <div ng-if="buildConfig.spec.source.type == 'None'">
+                                  <dt>Source:</dt>
+                                  <dd>
+                                    Not set
+                                    <span class="help action-inline">
+                                      <a href>
+                                        <i class="pficon pficon-help" data-toggle="tooltip" aria-hidden="true" data-original-title="No input is predefined for this build configuration.">
+                                        </i>
+                                      </a>
+                                    </span>
+                                  </dd>
+                                </div>
                                 <div ng-if="buildConfig.spec.source.images" class="image-sources">
                                   <dt>Image sources:</dt>
                                   <dd></dd>
