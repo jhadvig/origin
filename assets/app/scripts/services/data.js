@@ -300,6 +300,9 @@ angular.module('openshiftConsole')
       case "update":
         self.update(resource, object.metadata.name, object, context, opts).then(success, failure);
         break;
+      case "delete":
+        self.delete(resource, object.metadata.name, context, opts).then(success,failure);
+        break;
       default:
         // default case to prevent unspecified actions and typos
         return deferred.reject({
