@@ -218,7 +218,21 @@ angular.module("openshiftConsole")
         }
 
         function checkIfExists(item) {
-          // Check if the resource already exists. If it does, replace it spec with the new one.
+
+          // check for invalid and unsupported object kind and version
+          var groupVersion = APIService.objectToResourceGroupVersion(item);
+          if (!groupVersion) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.invalidObjectKindOrVersion(item) };
+            return;
+          }
+          if (!APIService.apiInfo(groupVersion)) {
+            $scope.errorOccured = true;
+            $scope.error = { message: APIService.unsupportedObjectKindOrVersion(item) };
+            return;
+          }
+
+          // set group name for api extensions
           var resource = APIService.kindToResource(item.kind);
           if (resource === "horizontalpodautoscalers" || resource === "jobs") {
             resource = {
@@ -226,6 +240,8 @@ angular.module("openshiftConsole")
               resource: resource
             };
           }
+
+          // Check if the resource already exists. If it does, replace it spec with the new one.
           return DataService.get(resource, item.metadata.name, $scope.context, {errorNotification: false}).then(
             // resource does exist
             function(resource) {
