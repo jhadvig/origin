@@ -25,6 +25,14 @@ tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
            --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+# TODO: Added for debugging purposes. Remove me afterwards.
+echo "===== DEBUGGING ====="
+git status
+git diff-index HEAD
+echo $?
+git ls-files --exclude-standard --others
+echo $?
+echo "===== DEBUGGING ====="
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
